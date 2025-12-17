@@ -1,18 +1,17 @@
 import { Router } from "express";
 import axios from "axios";
+import dotenv from "dotenv";
+dotenv.config();
 
 const router = Router();
 
-const BASE_URL = process.env.COLLECTO_BASE_URL || "";
-const API_KEY = process.env.COLLECTO_API_KEY || "";
+const BASE_URL = process.env.COLLECTO_BASE_URL;
+const API_KEY = process.env.COLLECTO_API_KEY;
 
-if (BASE_URL || API_KEY) {
+if (!BASE_URL || !API_KEY) {
   throw new Error("Collecto env variables missing");
 }
 
-/**
- * Common headers for Collecto
- */
 function collectoHeaders(userToken?: string) {
   return {
     "x-api-key": API_KEY,
@@ -20,10 +19,7 @@ function collectoHeaders(userToken?: string) {
   };
 }
 
-/**
- * GET /api/services
- * Fetch services from Collecto
- */
+
 router.get("/services", async (req, res) => {
   try {
     const userToken = req.headers.authorization;
