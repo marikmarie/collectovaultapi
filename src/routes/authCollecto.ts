@@ -23,11 +23,13 @@ function collectoHeaders(userToken?: string) {
 // POST /auth
 router.post("/auth", async (req: Request, res: Response) => {
   try {
-    console.log("Collecto /auth called");
+    console.log("REQ BODY", req.body);
     const response = await axios.post(`${BASE_URL}/auth`, req.body, {
       headers: collectoHeaders(),
-    });
+    });   
+    console.log("RESPONSE DATA", response.data);
     return res.status(response.status).json(response.data);
+
   } catch (err: any) {
     console.error("[Collecto /auth] ERROR", err?.response?.data || err.message);
     return res.status(err?.response?.status || 500).json({
