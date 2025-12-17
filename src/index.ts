@@ -1,18 +1,22 @@
 import express from "express";
-import bodyParser from "body-parser";
-import { config } from "./config";
-//import pointRulesRouter from "./routes/pointRules";
-import customersRouter from "./routes/customers";
+import cors from "cors";
+import dotenv from "dotenv";
+import servicesRouter from "./routes/services";
 
+dotenv.config();
 
 const app = express();
-app.use(bodyParser.json());
 
-// app.use("/api/point-rules", pointRulesRouter);
-// app.use("/api/tier-rules", tierRulesRouter);
-// app.use("/api/packages", packagesRouter);
-app.use("/api/customers", customersRouter);
+app.use(cors());
+app.use(express.json());
 
-app.listen(Number(config.PORT), () => {
-  console.log(`Collecto Vault API running on ${config.PORT}`);
+app.use("/api", servicesRouter);
+
+app.get("/", (_, res) => {
+  res.send("CollectoVault API proxy running");
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

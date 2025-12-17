@@ -34,8 +34,6 @@ function safeStringify(x: any, max = 2000) {
   }
 }
 
-/* --------------------------- Collecto Axios Client --------------------------- */
-
 function makeCollectoClient() {
   const client = axios.create({
     baseURL: COLLECTO_BASE,
@@ -72,9 +70,7 @@ function makeCollectoClient() {
   return client;
 }
 
-/**
- * POST /collecto/auth
- */
+
 export async function collectoAuthHandler(req: Request, res: Response) {
   const start = Date.now();
   try {
@@ -91,9 +87,7 @@ export async function collectoAuthHandler(req: Request, res: Response) {
   }
 }
 
-/**
- * POST /collecto/authVerify
- */
+
 export async function collectoAuthVerifyHandler(req: Request, res: Response) {
   const start = Date.now();
   try {
@@ -110,10 +104,9 @@ export async function collectoAuthVerifyHandler(req: Request, res: Response) {
   }
 }
 
-/* ------------------------ Optional Auth Middleware ------------------------ */
-/**
- * Middleware to validate an already-issued Collecto token
- */
+
+// Express middleware for Collecto authentication 
+// note that this is optional
 export async function collectoAuthMiddleware(
   req: Request,
   res: Response,

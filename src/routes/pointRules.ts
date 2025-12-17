@@ -10,28 +10,23 @@ export async function computeAndApplyPointsForCustomer(collectoCustomerId: strin
   try {
     await conn.beginTransaction();
 
-    // Load active rules (simple example)
     const [rulesRows] = await conn.query(`SELECT * FROM point_rules WHERE active = 1 ORDER BY id ASC`);
     const rules: any[] = (rulesRows as any[]);
 
-    // Ensure customer record exists
     await conn.query(
       `INSERT INTO customer_points (collecto_customer_id, points_balance) 
         VALUES (?, 0) ON DUPLICATE KEY UPDATE collecto_customer_id = collecto_customer_id`,
       [collectoCustomerId]
     );
 
-    // Get current balance
     const [balRows] = await conn.query(`SELECT id, points_balance FROM customer_points WHERE collecto_customer_id = ?`, [collectoCustomerId]);
     const balanceRow: any = (balRows as any[])[0];
     let currentBalance = Number(balanceRow.points_balance || 0);
 
-    // For each transaction compute points using rules (simple strategy: apply first matching rule by event_type='transaction' and min/max)
     for (const tx of transactions) {
-      // check if we already created ledger entry for this transaction (idempotency)
-      const [existing] = await conn.query(`SELECT id FROM points_ledger WHERE source_type='transaction' AND source_id=? LIMIT 1`, [tx.id]);
+     const [existing] = await conn.query(`SELECT id FROM points_ledger WHERE source_type='transaction' AND source_id=? LIMIT 1`, [tx.id]);
       if ((existing as any[]).length > 0) {
-        continue; // skip already processed
+        continue; 
       }
 
       let earned = 0;
@@ -39,14 +34,12 @@ export async function computeAndApplyPointsForCustomer(collectoCustomerId: strin
       for (const r of rules) {
         if (r.event_type !== "transaction") continue;
 
-        // check min/max
         const amount = Number(tx.amount || 0);
         if (r.min_amount !== null && r.min_amount !== undefined && amount < Number(r.min_amount)) continue;
         if (r.max_amount !== null && r.max_amount !== undefined && amount > Number(r.max_amount)) {
           // allow if rule allowed > max? for now skip
         }
 
-        // compute from multiplier and/or fixed
         const multiplier = Number(r.multiplier || 0);
         const fixed = Number(r.fixed_points || 0);
 
