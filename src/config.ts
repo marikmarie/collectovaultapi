@@ -1,13 +1,44 @@
 import dotenv from "dotenv";
+
 dotenv.config();
 
-export const config = {
-  PORT: process.env.PORT || "4000",
-  DB_HOST: process.env.DB_HOST || "127.0.0.1",
-  DB_PORT: process.env.DB_PORT || "3306",
-  DB_USER: process.env.DB_USER || "root",
-  DB_PASSWORD: process.env.DB_PASSWORD || "",
-  DB_DATABASE: process.env.DB_DATABASE || "collecto_vault",
-  COLLECTO_BASE_URL: process.env.COLLECTO_BASE_URL!,
-  COLLECTO_API_KEY: process.env.COLLECTO_API_KEY!
-};
+type EnvType = "development" | "staging" | "production";
+
+const envType = (process.env.ENV_TYPE as EnvType) ?? "development";
+
+const configs = {
+  development: {
+    PORT: "4000",
+    DB_HOST: "127.0.0.1",
+    DB_PORT: "3306",
+    DB_USER: "root",
+    DB_PASSWORD: "",
+    DB_DATABASE: "collecto_vault",
+    COLLECTO_BASE_URL: process.env.COLLECTO_BASE_URL!,
+    COLLECTO_API_KEY: process.env.COLLECTO_API_KEY!,
+  },
+
+  staging: {
+    PORT: process.env.PORT!,
+    DB_HOST: process.env.DB_HOST!,
+    DB_PORT: process.env.DB_PORT!,
+    DB_USER: process.env.DB_USER!,
+    DB_PASSWORD: process.env.DB_PASSWORD!,
+    DB_DATABASE: process.env.DB_DATABASE!,
+    COLLECTO_BASE_URL: process.env.COLLECTO_BASE_URL!,
+    COLLECTO_API_KEY: process.env.COLLECTO_API_KEY!,
+  },
+
+  production: {
+    PORT: process.env.PORT!,
+    DB_HOST: process.env.DB_HOST!,
+    DB_PORT: process.env.DB_PORT!,
+    DB_USER: process.env.DB_USER!,
+    DB_PASSWORD: process.env.DB_PASSWORD!,
+    DB_DATABASE: process.env.DB_DATABASE!,
+    COLLECTO_BASE_URL: process.env.COLLECTO_BASE_URL!,
+    COLLECTO_API_KEY: process.env.COLLECTO_API_KEY!,
+  },
+} as const;
+
+export const config = configs[envType];

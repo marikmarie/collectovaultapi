@@ -1,0 +1,120 @@
+@BASE_URL = http://localhost:3000
+@JWT_TOKEN = your_jwt_token_here
+
+###
+### Collecto Vault API – REST Client
+### Tool: VS Code REST Client (humao.rest-client)
+### Purpose: Manual API testing & onboarding
+### Auth: JWT (NOT YET ENFORCED)
+###
+
+# =====================
+# ENVIRONMENT
+# =====================
+
+@env = local
+
+@baseUrl = {{BASE_URL}}
+@token = {{JWT_TOKEN}}
+
+###
+# =====================
+# HEALTH
+# =====================
+
+### Health check
+GET {{baseUrl}}/health
+
+
+# =====================
+# TIERS
+# =====================
+
+### Get all tiers
+GET {{baseUrl}}/api/tiers
+Authorization: Bearer {{token}}
+
+### Create tier
+POST {{baseUrl}}/api/tiers
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Diamond",
+  "pointsRequired": 20000,
+  "earningMultiplier": 2.5
+}
+
+### Update tier
+PUT {{baseUrl}}/api/tiers/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Diamond Plus",
+  "pointsRequired": 25000,
+  "earningMultiplier": 3.0
+}
+
+### Deactivate tier
+PATCH {{baseUrl}}/api/tiers/1/deactivate
+Authorization: Bearer {{token}}
+
+
+# =====================
+# VAULT PACKAGES
+# =====================
+
+### Get active vault packages
+GET {{baseUrl}}/api/vaultPackages/active
+Authorization: Bearer {{token}}
+
+### Create vault package
+POST {{baseUrl}}/api/vaultPackages
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Super Pack",
+  "pointsAmount": 5000,
+  "price": 99.99,
+  "isPopular": true
+}
+
+### Update package price
+PATCH {{baseUrl}}/api/vaultPackages/1/price
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "price": 89.99
+}
+
+
+# =====================
+# EARNING RULES
+# =====================
+
+### Get active earning rules
+GET {{baseUrl}}/api/earningRules/active
+Authorization: Bearer {{token}}
+
+### Create earning rule
+POST {{baseUrl}}/api/earningRules
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "ruleTitle": "Birthday Bonus",
+  "description": "Earn points on your birthday",
+  "points": 500
+}
+
+### Update rule points
+PATCH {{baseUrl}}/api/earningRules/1/points
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "points": 750
+}

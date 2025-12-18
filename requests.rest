@@ -1,0 +1,105 @@
+
+```http
+@baseUrl = http://localhost:3000
+@token = your-token-here
+
+### =====================
+### TIERS
+### =====================
+
+### Get all tiers
+GET {{baseUrl}}/api/tiers
+Authorization: Bearer {{token}}
+
+### Create tier
+POST {{baseUrl}}/api/tiers
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Diamond",
+  "pointsRequired": 20000,
+  "earningMultiplier": 2.5
+}
+
+### Update tier
+PUT {{baseUrl}}/api/tiers/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Diamond Plus",
+  "pointsRequired": 25000,
+  "earningMultiplier": 3.0
+}
+
+### Deactivate tier
+PATCH {{baseUrl}}/api/tiers/1/deactivate
+Authorization: Bearer {{token}}
+
+### =====================
+### VAULT PACKAGES
+### =====================
+
+### Get active packages
+GET {{baseUrl}}/api/vaultPackages/active
+Authorization: Bearer {{token}}
+
+### Create package
+POST {{baseUrl}}/api/vaultPackages
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Super Pack",
+  "pointsAmount": 5000,
+  "price": 99.99,
+  "isPopular": true
+}
+
+### Update price
+PATCH {{baseUrl}}/api/vaultPackages/1/price
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "price": 89.99
+}
+
+### =====================
+### EARNING RULES
+### =====================
+
+### Get active rules
+GET {{baseUrl}}/api/earningRules/active
+Authorization: Bearer {{token}}
+
+### Create rule
+POST {{baseUrl}}/api/earningRules
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "ruleTitle": "Birthday Bonus",
+  "description": "Earn points on your birthday",
+  "points": 500
+}
+
+### Update rule points
+PATCH {{baseUrl}}/api/earningRules/1/points
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "points": 750
+}
+```
+
+---
+##note to self -jwt-auth not implemented yet
+##  Usage Notes
+
+* Replace `your-token-here` with a valid JWT
+* Click **"Send Request"** above any request in VS Code
+* Supports environment switching via `@baseUrl`
+
