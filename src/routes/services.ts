@@ -28,7 +28,7 @@ router.get("/services", async (req, res) => {
     const response = await axios.get(`${BASE_URL}/services`, {
       headers: collectoHeaders(userToken),
     });
-
+    
     return res.json(response.data);
   } catch (err: any) {
     console.error(err?.response?.data || err.message);
