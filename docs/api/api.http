@@ -17,13 +17,6 @@
 @baseUrl = {{BASE_URL}}
 @token = {{JWT_TOKEN}}
 
-###
-# =====================
-# HEALTH
-# =====================
-
-### Health check
-GET {{baseUrl}}/health
 
 
 # =====================
