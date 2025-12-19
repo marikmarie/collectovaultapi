@@ -11,11 +11,13 @@ export class VaultPackageController {
     next: NextFunction
   ): Promise<void> => {
     try {
+      console.log('Fetching all vault packages');
       const includeInactive = req.query.includeInactive === "true";
       const packages = await this.vaultPackageService.getAllPackages(
         includeInactive
       );
 
+      console.log(`Retrieved ${packages} packages`);
       res.status(200).json({
         success: true,
         data: packages,
@@ -31,6 +33,7 @@ export class VaultPackageController {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
+    console.log('Fetching active vault packages');
     try {
       const packages = await this.vaultPackageService.getActivePackages();
 
