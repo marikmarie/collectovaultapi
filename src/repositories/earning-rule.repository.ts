@@ -30,8 +30,8 @@ export class EarningRuleRepository {
 
   async findAll(includeInactive = false): Promise<EarningRule[]> {
     const query = includeInactive
-      ? "SELECT * FROM earning_rules ORDER BY points DESC"
-      : "SELECT * FROM earning_rules WHERE is_active = TRUE ORDER BY points DESC";
+      ? "SELECT * FROM vault_point_rules ORDER BY points DESC"
+      : "SELECT * FROM vault_point_rules WHERE is_active = TRUE ORDER BY points DESC";
 
     const [rows] = await pool.query<EarningRuleRow[]>(query);
     return rows.map((row) => this.mapRowToEarningRule(row));
@@ -39,7 +39,7 @@ export class EarningRuleRepository {
 
   async findById(id: number): Promise<EarningRule | null> {
     const [rows] = await pool.query<EarningRuleRow[]>(
-      "SELECT * FROM earning_rules WHERE id = ?",
+      "SELECT * FROM vault_point_rules WHERE id = ?",
       [id]
     );
 
@@ -48,7 +48,7 @@ export class EarningRuleRepository {
 
   async findByTitle(ruleTitle: string): Promise<EarningRule | null> {
     const [rows] = await pool.query<EarningRuleRow[]>(
-      "SELECT * FROM earning_rules WHERE rule_title = ?",
+      "SELECT * FROM vault_point_rules WHERE rule_title = ?",
       [ruleTitle]
     );
 
@@ -57,7 +57,7 @@ export class EarningRuleRepository {
 
   async findActive(): Promise<EarningRule[]> {
     const [rows] = await pool.query<EarningRuleRow[]>(
-      "SELECT * FROM earning_rules WHERE is_active = TRUE ORDER BY points DESC"
+      "SELECT * FROM vault_point_rules WHERE is_active = TRUE ORDER BY points DESC"
     );
 
     return rows.map((row) => this.mapRowToEarningRule(row));
@@ -68,7 +68,7 @@ export class EarningRuleRepository {
     maxPoints: number
   ): Promise<EarningRule[]> {
     const [rows] = await pool.query<EarningRuleRow[]>(
-      "SELECT * FROM earning_rules WHERE points BETWEEN ? AND ? AND is_active = TRUE ORDER BY points DESC",
+      "SELECT * FROM vault_point_rules WHERE points BETWEEN ? AND ? AND is_active = TRUE ORDER BY points DESC",
       [minPoints, maxPoints]
     );
 
@@ -82,7 +82,7 @@ export class EarningRuleRepository {
     createdBy: string
   ): Promise<EarningRule> {
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO earning_rules (rule_title, description, points, created_by) 
+      `INSERT INTO vault_point_rules (rule_title, description, points, created_by) 
        VALUES (?, ?, ?, ?)`,
       [ruleTitle, description, points, createdBy]
     );
@@ -131,7 +131,7 @@ export class EarningRuleRepository {
     values.push(id);
 
     await pool.query(
-      `UPDATE earning_rules SET ${fields.join(", ")} WHERE id = ?`,
+      `UPDATE vault_point_rules SET ${fields.join(", ")} WHERE id = ?`,
       values
     );
 
@@ -140,7 +140,7 @@ export class EarningRuleRepository {
 
   async delete(id: number): Promise<boolean> {
     const [result] = await pool.query<ResultSetHeader>(
-      "DELETE FROM earning_rules WHERE id = ?",
+      "DELETE FROM vault_point_rules WHERE id = ?",
       [id]
     );
 
@@ -149,7 +149,7 @@ export class EarningRuleRepository {
 
   async softDelete(id: number): Promise<EarningRule | null> {
     await pool.query(
-      "UPDATE earning_rules SET is_active = FALSE WHERE id = ?",
+      "UPDATE vault_point_rules SET is_active = FALSE WHERE id = ?",
       [id]
     );
 
@@ -157,7 +157,7 @@ export class EarningRuleRepository {
   }
 
   async activate(id: number): Promise<EarningRule | null> {
-    await pool.query("UPDATE earning_rules SET is_active = TRUE WHERE id = ?", [
+    await pool.query("UPDATE vault_point_rules SET is_active = TRUE WHERE id = ?", [
       id,
     ]);
 
