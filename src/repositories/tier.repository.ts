@@ -29,8 +29,8 @@ export class TierRepository {
 
   async findAll(includeInactive = false): Promise<Tier[]> {
     const query = includeInactive
-      ? "SELECT * FROM tiers ORDER BY points_required ASC"
-      : "SELECT * FROM tiers WHERE is_active = TRUE ORDER BY points_required ASC";
+      ? "SELECT * FROM vault_tiers ORDER BY points_required ASC"
+      : "SELECT * FROM vault_tiers WHERE is_active = TRUE ORDER BY points_required ASC";
 
     const [rows] = await pool.query<TierRow[]>(query);
     return rows.map((row) => this.mapRowToTier(row));
@@ -38,7 +38,7 @@ export class TierRepository {
 
   async findById(id: number): Promise<Tier | null> {
     const [rows] = await pool.query<TierRow[]>(
-      "SELECT * FROM tiers WHERE id = ?",
+      "SELECT * FROM vault_tiers WHERE id = ?",
       [id]
     );
 
@@ -47,7 +47,7 @@ export class TierRepository {
 
   async findByName(name: string): Promise<Tier | null> {
     const [rows] = await pool.query<TierRow[]>(
-      "SELECT * FROM tiers WHERE name = ?",
+      "SELECT * FROM vault_tiers WHERE name = ?",
       [name]
     );
 
@@ -61,7 +61,7 @@ export class TierRepository {
     createdBy: string
   ): Promise<Tier> {
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO tiers (name, points_required, earning_multiplier, created_by) 
+      `INSERT INTO vault_tiers (name, points_required, earning_multiplier, created_by) 
        VALUES (?, ?, ?, ?)`,
       [name, pointsRequired, earningMultiplier, createdBy]
     );
@@ -110,7 +110,7 @@ export class TierRepository {
     values.push(id);
 
     await pool.query(
-      `UPDATE tiers SET ${fields.join(", ")} WHERE id = ?`,
+      `UPDATE vault_tiers SET ${fields.join(", ")} WHERE id = ?`,
       values
     );
 
@@ -119,7 +119,7 @@ export class TierRepository {
 
   async delete(id: number): Promise<boolean> {
     const [result] = await pool.query<ResultSetHeader>(
-      "DELETE FROM tiers WHERE id = ?",
+      "DELETE FROM vault_tiers WHERE id = ?",
       [id]
     );
 
@@ -127,7 +127,7 @@ export class TierRepository {
   }
 
   async softDelete(id: number): Promise<Tier | null> {
-    await pool.query("UPDATE tiers SET is_active = FALSE WHERE id = ?", [id]);
+    await pool.query("UPDATE vault_tiers SET is_active = FALSE WHERE id = ?", [id]);
 
     return this.findById(id);
   }
