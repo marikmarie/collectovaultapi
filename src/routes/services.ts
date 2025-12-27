@@ -28,8 +28,9 @@ router.get("/services", async (req, res) => {
     const response = await axios.get(`${BASE_URL}/services`, {
       headers: collectoHeaders(userToken),
     });
-    
+     console.log(res.json(response))
     return res.json(response.data);
+   
   } catch (err: any) {
     console.error(err?.response?.data || err.message);
     return res.status(err?.response?.status || 500).json({
@@ -39,6 +40,23 @@ router.get("/services", async (req, res) => {
   }
 });
 
+
+router.get("/invoices", async (req, res) => {
+try{
+const token =req.headers.authorization;
+if(!token)
+  return res.status(401).send("Missing user token");
+
+const response = await axios.get(`${BASE_URL}/invoices`, {
+  headers: collectoHeaders(token),
+});
+console.log(response);
+return res.json(response.data);
+
+}catch (error: any){
+
+}
+})
 /**
  * POST /api/invoice
  * PAY LATER
