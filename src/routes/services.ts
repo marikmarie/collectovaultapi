@@ -25,7 +25,7 @@ router.get("/services", async (req, res) => {
     const userToken = req.headers.authorization;
     if (!userToken) return res.status(401).send("Missing user token");
 
-    const response = await axios.get(`${BASE_URL}/services`, {
+    const response = await axios.get(`${BASE_URL}/servicesAndProducts`, {
       headers: collectoHeaders(userToken),
     });
      console.log(res.json(response))
