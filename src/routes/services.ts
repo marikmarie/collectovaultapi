@@ -41,7 +41,7 @@ function collectoHeaders(userToken?: string) {
 //   }
 // });
 
-router.get("/services", async (req, res) => {
+router.post("/services", async (req, res) => {
   try {
     const userToken = req.headers.authorization;
 
@@ -62,7 +62,7 @@ router.get("/services", async (req, res) => {
     console.log("Outgoing request URL:", requestUrl);
 
     // Perform request (include headers so the request matches what you send)
-    const response = await axios.get(url, {
+    const response = await axios.post(url, {
       params
       //headers: collectoHeaders(userToken),
     });
