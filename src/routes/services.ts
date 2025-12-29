@@ -20,26 +20,63 @@ function collectoHeaders(userToken?: string) {
 }
 
 
+// router.get("/services", async (req, res) => {
+//   try {
+//     const userToken = req.headers.authorization;
+//     console.log(req.headers);
+//     if (!userToken) return res.status(401).send("Missing user token");
+
+//     const response = await axios.get(`${BASE_URL}/servicesAndProducts`,req.body, {
+//       headers: collectoHeaders(userToken),
+//     });
+//     console.log(response.data);
+//     return res.json(response.data);
+   
+//   } catch (err: any) {
+//     console.error(err?.response?.data || err.message);
+//     return res.status(err?.response?.status || 500).json({
+//       message: "Failed to fetch services",
+//       error: err?.response?.data,
+//     });
+//   }
+// });
+
 router.get("/services", async (req, res) => {
   try {
     const userToken = req.headers.authorization;
-    if (!userToken) return res.status(401).send("Missing user token");
 
-    const response = await axios.get(`${BASE_URL}/servicesAndProducts`, {
-      headers: collectoHeaders(userToken),
+    // Extract query parameters from the incoming request
+    const { collectoId } = req.query;
+
+    // Build params and exact request URL for logging
+    const url = `${BASE_URL}/servicesAndProducts`;
+    const params: Record<string, string> = {};
+    if (collectoId !== undefined) {
+      params.collectoId = Array.isArray(collectoId)
+        ? collectoId.join(",")
+        : String(collectoId);
+    }
+    const queryString = new URLSearchParams(params).toString();
+    const requestUrl = queryString ? `${url}?${queryString}` : url;
+
+    console.log("Outgoing request URL:", requestUrl);
+
+    // Perform request (include headers so the request matches what you send)
+    const response = await axios.get(url, {
+      params
+      //headers: collectoHeaders(userToken),
     });
-     console.log(res.json(response))
+
+    console.log("Response data:", response.data);
     return res.json(response.data);
-   
   } catch (err: any) {
-    console.error(err?.response?.data || err.message);
+    console.error("Fetch Error:", err?.response?.data || err.message);
     return res.status(err?.response?.status || 500).json({
       message: "Failed to fetch services",
-      error: err?.response?.data,
+      error: err?.response?.data || err.message,
     });
   }
 });
-
 
 router.get("/invoices", async (req, res) => {
 try{
