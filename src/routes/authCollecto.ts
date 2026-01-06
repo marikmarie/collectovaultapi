@@ -27,6 +27,7 @@ router.post("/auth", async (req: Request, res: Response) => {
     const response = await axios.post(`${BASE_URL}/auth`, req.body, {
       headers: collectoHeaders(),
     });   
+    console.log(BASE_URL);
     console.log("RESPONSE DATA", response.data);
     return res.status(response.status).json(response.data);
 

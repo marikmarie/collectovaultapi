@@ -15,34 +15,30 @@ if (!BASE_URL || !API_KEY) {
 function collectoHeaders(userToken?: string) {
   return {
     "x-api-key": API_KEY,
-    ...(userToken ? { Authorization: userToken } : {}),
   };
 }
 
-// 1. Changed to .post
 router.post("/services", async (req, res) => {
   try {
-    const userToken = req.headers.authorization;
-    
     // In a POST request, data usually comes from req.body
     const { collectoId } = req.body;
     console.log("Collecto ID:", collectoId);
 
     if (!collectoId) {
-      return res.status(400).json({ message: "collectoId is required in the request body" });
+      return res
+        .status(400)
+        .json({ message: "collectoId is required in the request body" });
     }
-
-    // 2. Axios POST syntax: axios.post(url, data, config)
-    const response = await axios.post(
-      `${BASE_URL}/servicesAndProducts`, 
-      { collectoId }, 
-      // {
-      //   headers: collectoHeaders(userToken), // Configuration/Headers go third
-      // }
-    );
-    console.log("Services Response:", response.data);
-    return res.json(response.data);
     
+    const response = await axios.post(
+      `${BASE_URL}/servicesAndProducts`,
+      { collectoId },
+      {
+        headers: collectoHeaders(),
+      }
+    );
+    console.log("Services Response:", JSON.stringify(response.data, null, 2));
+    return res.json(response.data);
   } catch (err: any) {
     console.error("Fetch Error:", err?.response?.data || err.message);
     return res.status(err?.response?.status || 500).json({
@@ -51,48 +47,19 @@ router.post("/services", async (req, res) => {
     });
   }
 });
-// router.get("/services", async (req, res) => {
-//   try {
-//     const userToken = req.headers.authorization;
-    
-//     // if (!userToken) {
-//     //   return res.status(401).send("Missing user token");
-//     // }
-//  const { collectoId } = req.query;
-
-//     // 3. Make the Axios call
-//     const response = await axios.get(`${BASE_URL}/servicesAndProducts`, {
-//      // headers: collectoHeaders(userToken),
-//       params: { collectoId } // Axios automatically appends this to the URL
-//     });
-
-//     return res.json(response.data);
-    
-//   } catch (err: any) {
-//     console.error("Fetch Error:", err?.response?.data || err.message);
-//     return res.status(err?.response?.status || 500).json({
-//       message: "Failed to fetch services",
-//       error: err?.response?.data || err.message,
-//     });
-//   }
-// });
 
 router.get("/invoices", async (req, res) => {
-try{
-const token =req.headers.authorization;
-if(!token)
-  return res.status(401).send("Missing user token");
+  try {
+    const token = req.headers.authorization;
+    if (!token) return res.status(401).send("Missing user token");
 
-const response = await axios.get(`${BASE_URL}/invoices`, {
-  headers: collectoHeaders(token),
+    const response = await axios.get(`${BASE_URL}/invoices`, {
+      headers: collectoHeaders(token),
+    });
+    console.log(response);
+    return res.json(response.data);
+  } catch (error: any) {}
 });
-console.log(response);
-return res.json(response.data);
-
-}catch (error: any){
-
-}
-})
 /**
  * POST /api/invoice
  * PAY LATER
