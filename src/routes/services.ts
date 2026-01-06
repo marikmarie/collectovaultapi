@@ -41,7 +41,6 @@ router.post("/services", async (req, res) => {
       // }
     );
     console.log("Services Response:", response.data);
-
     return res.json(response.data);
     
   } catch (err: any) {
