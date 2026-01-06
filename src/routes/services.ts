@@ -35,7 +35,7 @@ router.post("/services", async (req, res) => {
     // 2. Axios POST syntax: axios.post(url, data, config)
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`, 
-      { collectoId }, // This is the request body sent to the endpoint
+      { collectoId }, 
       // {
       //   headers: collectoHeaders(userToken), // Configuration/Headers go third
       // }
