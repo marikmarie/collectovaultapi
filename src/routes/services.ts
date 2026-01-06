@@ -21,7 +21,7 @@ function collectoHeaders(userToken?: string) {
 router.post("/services", async (req, res) => {
   try {
     // In a POST request, data usually comes from req.body
-    const { collectoId } = req.body;
+    const { collectoId , page} = req.body;
     console.log("Collecto ID:", collectoId);
 
     if (!collectoId) {
@@ -29,10 +29,10 @@ router.post("/services", async (req, res) => {
         .status(400)
         .json({ message: "collectoId is required in the request body" });
     }
-    
+
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`,
-      { collectoId },
+      { collectoId, page },
       {
         headers: collectoHeaders(),
       }
@@ -65,6 +65,7 @@ router.get("/invoices", async (req, res) => {
  * PAY LATER
  * body: { serviceId, serviceName }
  */
+
 router.post("/invoice", async (req, res) => {
   try {
     const userToken = req.headers.authorization;
