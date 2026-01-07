@@ -8,7 +8,6 @@ import vaultPackageRouter from "./routes/vault-package.routes";
 import earningRuleRouter from "./routes/earning-rule.routes";
 
 dotenv.config();
-
 const app = express();
 
 app.use(cors());

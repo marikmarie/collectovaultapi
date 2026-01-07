@@ -13,15 +13,21 @@ if (!BASE_URL || !API_KEY) {
 }
 
 function collectoHeaders(userToken?: string) {
-  return {
-    "x-api-key": API_KEY,
+  const headers: Record<string, string> = {
+    "x-api-key": API_KEY!,
   };
-}
+  if (userToken) {
+    headers["authorization"] = userToken;
+  }
+  return headers;
+} 
 
 router.post("/services", async (req, res) => {
   try {
     // In a POST request, data usually comes from req.body
-    const { collectoId , page} = req.body;
+    const { collectoId, page } = req.body;
+    const token = req.headers.authorization as string | undefined;
+    const pageNumber = typeof page === "number" ? page : parseInt(page) || 1;
     console.log("Collecto ID:", collectoId);
 
     if (!collectoId) {
@@ -32,9 +38,9 @@ router.post("/services", async (req, res) => {
 
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`,
-      { collectoId, page },
+      { collectoId, page: pageNumber },
       {
-        headers: collectoHeaders(),
+        headers: collectoHeaders(token),
       }
     );
     console.log("Services Response:", JSON.stringify(response.data, null, 2));
@@ -62,24 +68,39 @@ router.get("/invoices", async (req, res) => {
 });
 /**
  * POST /api/invoice
- * PAY LATER
- * body: { serviceId, serviceName }
+ * Unified invoice endpoint for Pay Now and Pay Later
+ * body: {
+ *   items: [{ serviceId, serviceName, amount, quantity }],
+ *   amount: number,
+ *   phone?: string,
+ *   payNow?: number | boolean (1 / 0)
+ * }
  */
 
 router.post("/invoice", async (req, res) => {
   try {
-    const userToken = req.headers.authorization;
-    const { serviceId, serviceName } = req.body;
+   // const userToken = req.headers.authorization;
+    const { items, amount, phone, payNow } = req.body;
 
-    if (!userToken) return res.status(401).send("Missing user token");
-    if (!serviceId || !serviceName)
-      return res.status(400).send("Missing serviceId or serviceName");
+   // if (!userToken) return res.status(401).send("Missing user token");
+    if (!items || !Array.isArray(items) || items.length === 0)
+      return res.status(400).send("Missing items in request body");
+    if (typeof amount !== "number" && typeof amount !== "string")
+      return res.status(400).send("Missing or invalid amount");
 
-    const response = await axios.post(
-      `${BASE_URL}/invoices`,
-      { serviceId, serviceName },
-      { headers: collectoHeaders(userToken) }
-    );
+    console.log(req);
+    const payload: any = {
+      items,
+      amount: Number(amount),
+    };
+
+    if (phone) payload.phone = phone;
+    if (payNow !== undefined) payload.payNow = payNow ? 1 : 0;
+
+    // Forward to Collecto createInvoice endpoint (server will handle payNow)
+    const response = await axios.post(`${BASE_URL}/createInvoice`, payload, {
+      headers: collectoHeaders(),
+    })
 
     return res.json(response.data);
   } catch (err: any) {
@@ -93,37 +114,10 @@ router.post("/invoice", async (req, res) => {
 
 /**
  * POST /api/pay
- * PAY NOW
- * body: { serviceId, serviceName, amount, phone }
+ * DEPRECATED: use POST /api/invoice with { payNow: 1 }
  */
 router.post("/pay", async (req, res) => {
-  try {
-    const userToken = req.headers.authorization;
-    const { serviceId, serviceName, amount, phone } = req.body;
-
-    if (!userToken) return res.status(401).send("Missing user token");
-    if (!serviceId || !serviceName || !amount || !phone)
-      return res.status(400).send("Missing required fields");
-
-    const response = await axios.post(
-      `${BASE_URL}/pay`,
-      {
-        serviceId,
-        serviceName,
-        amount,
-        phone,
-      },
-      { headers: collectoHeaders(userToken) }
-    );
-
-    return res.json(response.data);
-  } catch (err: any) {
-    console.error(err?.response?.data || err.message);
-    return res.status(err?.response?.status || 500).json({
-      message: "Payment failed",
-      error: err?.response?.data,
-    });
-  }
+  return res.status(400).json({ message: "Endpoint deprecated. Use POST /invoice with payNow: 1" });
 });
 
 export default router;
