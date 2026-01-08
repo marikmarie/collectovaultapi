@@ -55,6 +55,15 @@ export class TierRepository {
     return rows.length > 0 ? this.mapRowToTier(rows[0]) : null;
   }
 
+  async findByCollectoId(collectoId: string): Promise<Tier | null> {
+    const [rows] = await pool.query<TierRow[]>(
+      "SELECT * FROM vault_tiers WHERE collecto_id = ? LIMIT 1",
+      [collectoId]
+    );
+
+    return rows.length > 0 ? this.mapRowToTier(rows[0]) : null;
+  }
+
   async findByName(name: string): Promise<Tier | null> {
     const [rows] = await pool.query<TierRow[]>(
       "SELECT * FROM vault_tiers WHERE name = ?",

@@ -71,17 +71,15 @@ export class VaultPackageController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const id = parseInt(req.params.id, 10);
+      const idParam = req.params.id;
+      const id = parseInt(idParam, 10);
 
-      if (isNaN(id)) {
-        res.status(400).json({
-          success: false,
-          error: "Invalid package ID",
-        });
-        return;
+      let vaultPackage;
+      if (!isNaN(id)) {
+        vaultPackage = await this.vaultPackageService.getPackageById(id);
+      } else {
+        vaultPackage = await this.vaultPackageService.getPackageByCollectoId(idParam);
       }
-
-      const vaultPackage = await this.vaultPackageService.getPackageById(id);
 
       res.status(200).json({
         success: true,

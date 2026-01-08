@@ -81,17 +81,16 @@ export class EarningRuleController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const id = parseInt(req.params.id, 10);
+      const idParam = req.params.id;
+      const id = parseInt(idParam, 10);
 
-      if (isNaN(id)) {
-        res.status(400).json({
-          success: false,
-          error: "Invalid rule ID",
-        });
-        return;
+      let rule;
+      if (!isNaN(id)) {
+        rule = await this.earningRuleService.getRuleById(id);
+      } else {
+        // treat as collectoId
+        rule = await this.earningRuleService.getRuleByCollectoId(idParam);
       }
-
-      const rule = await this.earningRuleService.getRuleById(id);
 
       res.status(200).json({
         success: true,

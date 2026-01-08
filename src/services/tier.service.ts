@@ -31,6 +31,14 @@ export class TierService {
     return tier;
   }
 
+  async getTierByCollectoId(collectoId: string): Promise<Tier> {
+    const tier = await this.tierRepository.findByCollectoId(collectoId);
+    if (!tier) {
+      throw new Error(`Tier with collectoId ${collectoId} not found`);
+    }
+    return tier;
+  }
+
   async getTierByName(name: string): Promise<Tier> {
     const tier = await this.tierRepository.findByName(name);
     if (!tier) {

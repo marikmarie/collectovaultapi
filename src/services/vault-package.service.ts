@@ -44,6 +44,14 @@ export class VaultPackageService {
     return vaultPackage;
   }
 
+  async getPackageByCollectoId(collectoId: string): Promise<VaultPackage> {
+    const vaultPackage = await this.vaultPackageRepository.findByCollectoId(collectoId);
+    if (!vaultPackage) {
+      throw new Error(`Vault package with collectoId ${collectoId} not found`);
+    }
+    return vaultPackage;
+  }
+
   async getPackageByName(name: string): Promise<VaultPackage> {
     const vaultPackage = await this.vaultPackageRepository.findByName(name);
     if (!vaultPackage) {

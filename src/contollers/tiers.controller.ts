@@ -29,17 +29,15 @@ export class TierController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const id = parseInt(req.params.id, 10);
+      const idParam = req.params.id;
+      const id = parseInt(idParam, 10);
 
-      if (isNaN(id)) {
-        res.status(400).json({
-          success: false,
-          error: "Invalid tier ID",
-        });
-        return;
+      let tier;
+      if (!isNaN(id)) {
+        tier = await this.tierService.getTierById(id);
+      } else {
+        tier = await this.tierService.getTierByCollectoId(idParam);
       }
-
-      const tier = await this.tierService.getTierById(id);
 
       res.status(200).json({
         success: true,

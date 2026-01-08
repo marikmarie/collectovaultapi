@@ -58,6 +58,15 @@ export class VaultPackageRepository {
     return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
   }
 
+  async findByCollectoId(collectoId: string): Promise<VaultPackage | null> {
+    const [rows] = await pool.query<VaultPackageRow[]>(
+      "SELECT * FROM vault_packages WHERE collecto_id = ? LIMIT 1",
+      [collectoId]
+    );
+
+    return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
+  }
+
   async findByName(name: string): Promise<VaultPackage | null> {
     const [rows] = await pool.query<VaultPackageRow[]>(
       "SELECT * FROM vault_packages WHERE name = ?",

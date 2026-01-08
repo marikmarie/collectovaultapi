@@ -24,7 +24,7 @@
 # =====================
 
 ### Get all tiers
-GET {{baseUrl}}/api/tiers
+GET {{baseUrl}}/api/tiers?collectoId=abc123
 Authorization: Bearer {{token}}
 
 ### Create tier
@@ -33,6 +33,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
+  "collectoId": "abc123",
   "name": "Diamond",
   "pointsRequired": 20000,
   "earningMultiplier": 2.5
@@ -59,7 +60,7 @@ Authorization: Bearer {{token}}
 # =====================
 
 ### Get active vault packages
-GET {{baseUrl}}/api/vaultPackages/active
+GET {{baseUrl}}/api/vaultPackages/active?collectoId=abc123
 Authorization: Bearer {{token}}
 
 ### Create vault package
@@ -68,6 +69,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
+  "collectoId": "abc123",
   "name": "Super Pack",
   "pointsAmount": 5000,
   "price": 99.99,
@@ -89,7 +91,7 @@ Authorization: Bearer {{token}}
 # =====================
 
 ### Get active earning rules
-GET {{baseUrl}}/api/earningRules/active
+GET {{baseUrl}}/api/earningRules/active?collectoId=abc123
 Authorization: Bearer {{token}}
 
 ### Create earning rule
@@ -98,6 +100,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
+  "collectoId": "abc123",
   "ruleTitle": "Birthday Bonus",
   "description": "Earn points on your birthday",
   "points": 500
