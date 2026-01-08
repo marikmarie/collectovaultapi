@@ -13,11 +13,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api", servicesRouter);
-app.use("/api", collectoRouter);
-app.use("/api/tiers", tierRouter);
-app.use("/api/vaultPackages", vaultPackageRouter);
-app.use("/api/earningRules", earningRuleRouter);
+app.use("/", servicesRouter);
+app.use("/", collectoRouter);
+app.use("/tiers", tierRouter);
+app.use("/vaultPackages", vaultPackageRouter);
+app.use("/earningRules", earningRuleRouter);
 
 app.get("/", (_, res) => {
   res.send("CollectoVault API proxy running");

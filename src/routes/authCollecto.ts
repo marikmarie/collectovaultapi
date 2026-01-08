@@ -41,11 +41,13 @@ router.post("/auth", async (req: Request, res: Response) => {
 });
 
 // POST /auth/verify
-router.post("/auth/verify", async (req: Request, res: Response) => {
+router.post("/authverify", async (req: Request, res: Response) => {
   try {
+    console.log(req.body);
     const response = await axios.post(`${BASE_URL}/authVerify`, req.body, {
       headers: collectoHeaders(),
     });
+    console.log(response.data);
     return res.status(response.status).json(response.data);
   } catch (err: any) {
     console.error(
