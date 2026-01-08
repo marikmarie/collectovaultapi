@@ -27,6 +27,10 @@
 GET {{baseUrl}}/api/tiers?collectoId=abc123
 Authorization: Bearer {{token}}
 
+### Get tier by collectoId
+GET {{baseUrl}}/api/tiers/collecto/abc123
+Authorization: Bearer {{token}}
+
 ### Create tier
 POST {{baseUrl}}/api/tiers
 Content-Type: application/json
@@ -63,6 +67,10 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/api/vaultPackages/active?collectoId=abc123
 Authorization: Bearer {{token}}
 
+### Get vault package by collectoId
+GET {{baseUrl}}/api/vaultPackages/collecto/abc123
+Authorization: Bearer {{token}}
+
 ### Create vault package
 POST {{baseUrl}}/api/vaultPackages
 Content-Type: application/json
@@ -92,6 +100,10 @@ Authorization: Bearer {{token}}
 
 ### Get active earning rules
 GET {{baseUrl}}/api/earningRules/active?collectoId=abc123
+Authorization: Bearer {{token}}
+
+### Get earning rule by collectoId
+GET {{baseUrl}}/api/earningRules/collecto/abc123
 Authorization: Bearer {{token}}
 
 ### Create earning rule

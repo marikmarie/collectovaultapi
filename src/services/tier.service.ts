@@ -31,12 +31,12 @@ export class TierService {
     return tier;
   }
 
-  async getTierByCollectoId(collectoId: string): Promise<Tier> {
-    const tier = await this.tierRepository.findByCollectoId(collectoId);
-    if (!tier) {
-      throw new Error(`Tier with collectoId ${collectoId} not found`);
+  async getTiersByCollectoId(collectoId: string): Promise<Tier[]> {
+    const tiers = await this.tierRepository.findByCollectoId(collectoId);
+    if (!tiers || tiers.length === 0) {
+      throw new Error(`Tiers with collectoId ${collectoId} not found`);
     }
-    return tier;
+    return tiers;
   }
 
   async getTierByName(name: string): Promise<Tier> {

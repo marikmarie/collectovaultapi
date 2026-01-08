@@ -14,6 +14,7 @@ const vaultPackageController = new VaultPackageController(vaultPackageService);
 router.get("/", vaultPackageController.getAllPackages);
 router.get("/active", vaultPackageController.getActivePackages);
 router.get("/popular", vaultPackageController.getPopularPackages);
+router.get("/collecto/:collectoId", vaultPackageController.getPackagesByCollectoId);
 
 // CRUD routes
 router.get("/:id", vaultPackageController.getPackageById);

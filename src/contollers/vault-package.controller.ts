@@ -13,8 +13,10 @@ export class VaultPackageController {
     try {
       //console.log('Fetching all vault packages');
       const includeInactive = req.query.includeInactive === "true";
+      const collectoId = req.query.collectoId as string | undefined;
       const packages = await this.vaultPackageService.getAllPackages(
-        includeInactive
+        includeInactive,
+        collectoId
       );
 
       //console.log(`Retrieved ${packages} packages`);
@@ -35,7 +37,8 @@ export class VaultPackageController {
   ): Promise<void> => {
     console.log('Fetching active vault packages');
     try {
-      const packages = await this.vaultPackageService.getActivePackages();
+      const collectoId = req.query.collectoId as string | undefined;
+      const packages = await this.vaultPackageService.getActivePackages(collectoId);
 
       res.status(200).json({
         success: true,
@@ -53,7 +56,8 @@ export class VaultPackageController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const packages = await this.vaultPackageService.getPopularPackages();
+      const collectoId = req.query.collectoId as string | undefined;
+      const packages = await this.vaultPackageService.getPopularPackages(collectoId);
 
       res.status(200).json({
         success: true,
@@ -74,17 +78,34 @@ export class VaultPackageController {
       const idParam = req.params.id;
       const id = parseInt(idParam, 10);
 
-      let vaultPackage;
       if (!isNaN(id)) {
-        vaultPackage = await this.vaultPackageService.getPackageById(id);
-      } else {
-        vaultPackage = await this.vaultPackageService.getPackageByCollectoId(idParam);
+        const vaultPackage = await this.vaultPackageService.getPackageById(id);
+        res.status(200).json({ success: true, data: vaultPackage });
+        return;
       }
 
-      res.status(200).json({
-        success: true,
-        data: vaultPackage,
-      });
+      // treat as collectoId -> may return multiple packages
+      const packages = await this.vaultPackageService.getPackagesByCollectoId(idParam);
+      res.status(200).json({ success: true, data: packages, count: packages.length });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getPackagesByCollectoId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const collectoId = req.params.collectoId;
+      if (!collectoId || typeof collectoId !== "string") {
+        res.status(400).json({ success: false, error: "Invalid collectoId" });
+        return;
+      }
+
+      const packages = await this.vaultPackageService.getPackagesByCollectoId(collectoId);
+      res.status(200).json({ success: true, data: packages, count: packages.length });
     } catch (err) {
       next(err);
     }

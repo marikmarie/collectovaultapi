@@ -34,12 +34,12 @@ export class EarningRuleService {
     }
     return rule;
   }
-  async getRuleByCollectoId(collectoId: string): Promise<EarningRule> {
-    const rule = await this.earningRuleRepository.findByCollectoId(collectoId);
-    if (!rule) {
-      throw new Error(`Earning rule with collectoId ${collectoId} not found`);
+  async getRulesByCollectoId(collectoId: string): Promise<EarningRule[]> {
+    const rules = await this.earningRuleRepository.findByCollectoId(collectoId);
+    if (!rules || rules.length === 0) {
+      throw new Error(`Earning rules with collectoId ${collectoId} not found`);
     }
-    return rule;
+    return rules;
   }
   async getRuleByTitle(ruleTitle: string): Promise<EarningRule> {
     const rule = await this.earningRuleRepository.findByTitle(ruleTitle);

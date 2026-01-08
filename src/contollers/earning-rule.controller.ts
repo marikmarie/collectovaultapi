@@ -11,7 +11,8 @@ export class EarningRuleController {
   ): Promise<void> => {
     try {
       const includeInactive = req.query.includeInactive === "true";
-      const rules = await this.earningRuleService.getAllRules(includeInactive);
+      const collectoId = req.query.collectoId as string | undefined;
+      const rules = await this.earningRuleService.getAllRules(includeInactive, collectoId);
       console.log('Fetched all earning rules');
       res.status(200).json({
         success: true,
@@ -31,7 +32,8 @@ export class EarningRuleController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const rules = await this.earningRuleService.getActiveRules();
+      const collectoId = req.query.collectoId as string | undefined;
+      const rules = await this.earningRuleService.getActiveRules(collectoId);
 
       res.status(200).json({
         success: true,
@@ -60,9 +62,11 @@ export class EarningRuleController {
         return;
       }
 
+      const collectoId = req.query.collectoId as string | undefined;
       const rules = await this.earningRuleService.getRulesByPointsRange(
         minPoints,
-        maxPoints
+        maxPoints,
+        collectoId
       );
 
       res.status(200).json({
@@ -84,18 +88,34 @@ export class EarningRuleController {
       const idParam = req.params.id;
       const id = parseInt(idParam, 10);
 
-      let rule;
       if (!isNaN(id)) {
-        rule = await this.earningRuleService.getRuleById(id);
-      } else {
-        // treat as collectoId
-        rule = await this.earningRuleService.getRuleByCollectoId(idParam);
+        const rule = await this.earningRuleService.getRuleById(id);
+        res.status(200).json({ success: true, data: rule });
+        return;
       }
 
-      res.status(200).json({
-        success: true,
-        data: rule,
-      });
+      // treat as collectoId -> may return multiple rules
+      const rules = await this.earningRuleService.getRulesByCollectoId(idParam);
+      res.status(200).json({ success: true, data: rules, count: rules.length });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getRulesByCollectoId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const collectoId = req.params.collectoId;
+      if (!collectoId || typeof collectoId !== "string") {
+        res.status(400).json({ success: false, error: "Invalid collectoId" });
+        return;
+      }
+
+      const rules = await this.earningRuleService.getRulesByCollectoId(collectoId);
+      res.status(200).json({ success: true, data: rules, count: rules.length });
     } catch (err) {
       next(err);
     }

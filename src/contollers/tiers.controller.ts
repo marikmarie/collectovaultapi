@@ -11,7 +11,8 @@ export class TierController {
   ): Promise<void> => {
     try {
       const includeInactive = req.query.includeInactive === "true";
-      const tiers = await this.tierService.getAllTiers(includeInactive);
+      const collectoId = req.query.collectoId as string | undefined;
+      const tiers = await this.tierService.getAllTiers(includeInactive, collectoId);
 
       res.status(200).json({
         success: true,
@@ -32,17 +33,34 @@ export class TierController {
       const idParam = req.params.id;
       const id = parseInt(idParam, 10);
 
-      let tier;
       if (!isNaN(id)) {
-        tier = await this.tierService.getTierById(id);
-      } else {
-        tier = await this.tierService.getTierByCollectoId(idParam);
+        const tier = await this.tierService.getTierById(id);
+        res.status(200).json({ success: true, data: tier });
+        return;
       }
 
-      res.status(200).json({
-        success: true,
-        data: tier,
-      });
+      // treat as collectoId -> may return multiple tiers
+      const tiers = await this.tierService.getTiersByCollectoId(idParam);
+      res.status(200).json({ success: true, data: tiers, count: tiers.length });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getTiersByCollectoId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const collectoId = req.params.collectoId;
+      if (!collectoId || typeof collectoId !== "string") {
+        res.status(400).json({ success: false, error: "Invalid collectoId" });
+        return;
+      }
+
+      const tiers = await this.tierService.getTiersByCollectoId(collectoId);
+      res.status(200).json({ success: true, data: tiers, count: tiers.length });
     } catch (err) {
       next(err);
     }

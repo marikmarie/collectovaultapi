@@ -58,13 +58,13 @@ export class VaultPackageRepository {
     return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
   }
 
-  async findByCollectoId(collectoId: string): Promise<VaultPackage | null> {
+  async findByCollectoId(collectoId: string): Promise<VaultPackage[]> {
     const [rows] = await pool.query<VaultPackageRow[]>(
-      "SELECT * FROM vault_packages WHERE collecto_id = ? LIMIT 1",
+      "SELECT * FROM vault_packages WHERE collecto_id = ? ORDER BY price ASC",
       [collectoId]
     );
 
-    return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
+    return rows.map((row) => this.mapRowToVaultPackage(row));
   }
 
   async findByName(name: string): Promise<VaultPackage | null> {

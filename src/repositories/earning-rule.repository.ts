@@ -56,13 +56,13 @@ export class EarningRuleRepository {
     return rows.length > 0 ? this.mapRowToEarningRule(rows[0]) : null;
   }
 
-  async findByCollectoId(collectoId: string): Promise<EarningRule | null> {
+  async findByCollectoId(collectoId: string): Promise<EarningRule[]> {
     const [rows] = await pool.query<EarningRuleRow[]>(
-      "SELECT * FROM vault_point_rules WHERE collecto_id = ? LIMIT 1",
+      "SELECT * FROM vault_point_rules WHERE collecto_id = ? ORDER BY points DESC",
       [collectoId]
     );
 
-    return rows.length > 0 ? this.mapRowToEarningRule(rows[0]) : null;
+    return rows.map((row) => this.mapRowToEarningRule(row));
   }
 
   async findByTitle(ruleTitle: string): Promise<EarningRule | null> {

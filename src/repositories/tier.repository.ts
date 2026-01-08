@@ -55,13 +55,13 @@ export class TierRepository {
     return rows.length > 0 ? this.mapRowToTier(rows[0]) : null;
   }
 
-  async findByCollectoId(collectoId: string): Promise<Tier | null> {
+  async findByCollectoId(collectoId: string): Promise<Tier[]> {
     const [rows] = await pool.query<TierRow[]>(
-      "SELECT * FROM vault_tiers WHERE collecto_id = ? LIMIT 1",
+      "SELECT * FROM vault_tiers WHERE collecto_id = ? ORDER BY points_required ASC",
       [collectoId]
     );
 
-    return rows.length > 0 ? this.mapRowToTier(rows[0]) : null;
+    return rows.map((row) => this.mapRowToTier(row));
   }
 
   async findByName(name: string): Promise<Tier | null> {

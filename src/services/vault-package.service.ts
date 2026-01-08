@@ -44,12 +44,12 @@ export class VaultPackageService {
     return vaultPackage;
   }
 
-  async getPackageByCollectoId(collectoId: string): Promise<VaultPackage> {
-    const vaultPackage = await this.vaultPackageRepository.findByCollectoId(collectoId);
-    if (!vaultPackage) {
-      throw new Error(`Vault package with collectoId ${collectoId} not found`);
+  async getPackagesByCollectoId(collectoId: string): Promise<VaultPackage[]> {
+    const packages = await this.vaultPackageRepository.findByCollectoId(collectoId);
+    if (!packages || packages.length === 0) {
+      throw new Error(`Vault packages with collectoId ${collectoId} not found`);
     }
-    return vaultPackage;
+    return packages;
   }
 
   async getPackageByName(name: string): Promise<VaultPackage> {

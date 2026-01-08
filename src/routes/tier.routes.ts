@@ -13,6 +13,7 @@ const tierController = new TierController(tierService);
 
 // Routes
 router.get("/", tierController.getAllTiers);
+router.get("/collecto/:collectoId", tierController.getTiersByCollectoId);
 router.get("/:id", tierController.getTierById);
 router.post("/", tierController.createTier);
 router.put("/:id", tierController.updateTier);
