@@ -56,12 +56,18 @@ export class TierController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { name, pointsRequired, earningMultiplier } = req.body;
+      const { collectoId, name, pointsRequired, earningMultiplier } = req.body;
+
+      if (!collectoId || typeof collectoId !== 'string') {
+        res.status(400).json({ success: false, error: 'collectoId is required' });
+        return;
+      }
 
       // Get createdBy from authenticated user (adjust based on your auth setup)
       const createdBy = (req as any).user?.id || "system";
 
       const tier = await this.tierService.createTier({
+        collectoId,
         name,
         pointsRequired,
         earningMultiplier,

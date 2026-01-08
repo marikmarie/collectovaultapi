@@ -17,7 +17,7 @@ app.use("/", servicesRouter);
 app.use("/", collectoRouter);
 app.use("/tiers", tierRouter);
 app.use("/vaultPackages", vaultPackageRouter);
-app.use("/earningRules", earningRuleRouter);
+app.use("/pointRules", earningRuleRouter);
 
 app.get("/", (_, res) => {
   res.send("CollectoVault API proxy running");

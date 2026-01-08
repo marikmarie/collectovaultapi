@@ -11,13 +11,13 @@ export class VaultPackageController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      console.log('Fetching all vault packages');
+      //console.log('Fetching all vault packages');
       const includeInactive = req.query.includeInactive === "true";
       const packages = await this.vaultPackageService.getAllPackages(
         includeInactive
       );
 
-      console.log(`Retrieved ${packages} packages`);
+      //console.log(`Retrieved ${packages} packages`);
       res.status(200).json({
         success: true,
         data: packages,
@@ -98,12 +98,17 @@ export class VaultPackageController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { name, pointsAmount, price, isPopular } = req.body;
+      const { collectoId, name, pointsAmount, price, isPopular } = req.body;
 
-     
+      if (!collectoId || typeof collectoId !== 'string') {
+        res.status(400).json({ success: false, error: 'collectoId is required' });
+        return;
+      }
+
       const createdBy = (req as any).user?.id || "system";
 
       const vaultPackage = await this.vaultPackageService.createPackage({
+        collectoId,
         name,
         pointsAmount,
         price,

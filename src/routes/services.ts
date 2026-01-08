@@ -91,16 +91,19 @@ router.post("/invoice", async (req: Request, res: Response) => {
     const userToken = req.headers.authorization;
     const { items, amount, phone } = req.body;
 
+    console.log("Invoice Request Body:", JSON.stringify(req.body, null, 2));
     if (!userToken) return res.status(401).send("Missing user token");
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).send("Missing items in request body");
 
-   // 1) New: items: [{ collectoId, clientId, serviceId, serviceName, Quantity, totalAmount }, ...]
-    // 2) Legacy: items: [{ serviceId, serviceName, amount, quantity }, ...] with collectoId & clientId at top-level
+   
+     // Helper to support multiple item field shapes (Quantity / quantity, totalAmount / total / amount)
+    const getQuantity = (it: any) => (Number(it?.Quantity ?? it?.quantity ?? it?.qty ?? 0));
+    const getTotal = (it: any) => (Number(it?.totalAmount ?? it?.total ?? it?.total_amount ?? it?.amount ?? 0));
 
-    // Detect new shape
+    // Detect new shape: each item includes collectoId & clientId and a total/Quantity pair
     const isNewShape = items.every((it: any) => (
-      it && (it.collectoId || it.collectoId === 0) && (it.clientId || it.clientId === 0) && (it.serviceId || it.serviceId === 0) && (it.serviceName !== undefined) && (it.Quantity !== undefined) && (it.totalAmount !== undefined)
+      it && (it.collectoId !== undefined && it.collectoId !== null) && (it.clientId !== undefined && it.clientId !== null) && (it.serviceId !== undefined) && (it.serviceName !== undefined) && (getQuantity(it) > 0 || getTotal(it) > 0)
     ));
 
     let collectoId: string | undefined;
@@ -116,22 +119,25 @@ router.post("/invoice", async (req: Request, res: Response) => {
       collectoId = String(items[0].collectoId);
       clientId = String(items[0].clientId);
 
+      if (!collectoId) return res.status(400).send("collectoId is required");
+      if (!clientId) return res.status(400).send("clientId (customer id) is required");
+
       // Convert to { serviceId, serviceName, amount, quantity } expected by Collecto
       forwardItems = items.map((it: any) => {
-        const quantity = Number(it.Quantity);
-        const total = Number(it.totalAmount);
+        const quantity = getQuantity(it);
+        const total = getTotal(it);
         const unit = quantity > 0 ? total / quantity : total;
         return {
           serviceId: it.serviceId,
           serviceName: it.serviceName,
-          amount: unit,
-          quantity,
+          amount: Number(unit),
+          quantity: Number(quantity),
         };
       });
     } else {
-      // Legacy shape - validate elements
-      const invalidItem = items.find((it: any) => !it.serviceId || !it.serviceName || !it.quantity || (it.amount === undefined));
-      if (invalidItem) return res.status(400).send("One or more items are missing required fields");
+      // Legacy shape - validate elements (expect amount & quantity fields)
+      const invalidItem = items.find((it: any) => !it.serviceId || !it.serviceName || (it.quantity === undefined) || (it.amount === undefined));
+      if (invalidItem) return res.status(400).send("One or more items are missing required fields (legacy shape expected)");
 
       // collectoId and clientId should be provided at the top-level (fallback)
       collectoId = req.body.collectoId;

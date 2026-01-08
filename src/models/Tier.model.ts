@@ -1,6 +1,7 @@
 export class Tier {
   constructor(
     public readonly id: number,
+    public collectoId: string | null,
     public name: string,
     public pointsRequired: number,
     public earningMultiplier: number,

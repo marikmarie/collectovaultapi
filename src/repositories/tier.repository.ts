@@ -4,6 +4,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface TierRow extends RowDataPacket {
   id: number;
+  collecto_id?: string | null;
   name: string;
   points_required: number;
   earning_multiplier: number;
@@ -17,6 +18,7 @@ export class TierRepository {
   private mapRowToTier(row: TierRow): Tier {
     return new Tier(
       row.id,
+      row.collecto_id ?? null,
       row.name,
       row.points_required,
       row.earning_multiplier,
@@ -27,7 +29,15 @@ export class TierRepository {
     );
   }
 
-  async findAll(includeInactive = false): Promise<Tier[]> {
+  async findAll(includeInactive = false, collectoId?: string): Promise<Tier[]> {
+    if (collectoId) {
+      const query = includeInactive
+        ? "SELECT * FROM vault_tiers WHERE collecto_id = ? ORDER BY points_required ASC"
+        : "SELECT * FROM vault_tiers WHERE is_active = TRUE AND collecto_id = ? ORDER BY points_required ASC";
+      const [rows] = await pool.query<TierRow[]>(query, [collectoId]);
+      return rows.map((row) => this.mapRowToTier(row));
+    }
+
     const query = includeInactive
       ? "SELECT * FROM vault_tiers ORDER BY points_required ASC"
       : "SELECT * FROM vault_tiers WHERE is_active = TRUE ORDER BY points_required ASC";
@@ -55,15 +65,16 @@ export class TierRepository {
   }
 
   async create(
+    collectoId: string | null,
     name: string,
     pointsRequired: number,
     earningMultiplier: number,
     createdBy: string
   ): Promise<Tier> {
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO vault_tiers (name, points_required, earning_multiplier, created_by) 
-       VALUES (?, ?, ?, ?)`,
-      [name, pointsRequired, earningMultiplier, createdBy]
+      `INSERT INTO vault_tiers (collecto_id, name, points_required, earning_multiplier, created_by) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [collectoId, name, pointsRequired, earningMultiplier, createdBy]
     );
 
     const tier = await this.findById(result.insertId);

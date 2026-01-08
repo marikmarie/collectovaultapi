@@ -5,6 +5,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface VaultPackageRow extends RowDataPacket {
   id: number;
+  collecto_id?: string | null;
   name: string;
   points_amount: number;
   price: number;
@@ -19,6 +20,7 @@ export class VaultPackageRepository {
   private mapRowToVaultPackage(row: VaultPackageRow): VaultPackage {
     return new VaultPackage(
       row.id,
+      row.collecto_id ?? null,
       row.name,
       row.points_amount,
       row.price,
@@ -30,7 +32,15 @@ export class VaultPackageRepository {
     );
   }
 
-  async findAll(includeInactive = false): Promise<VaultPackage[]> {
+  async findAll(includeInactive = false, collectoId?: string): Promise<VaultPackage[]> {
+    if (collectoId) {
+      const query = includeInactive
+        ? "SELECT * FROM vault_packages WHERE collecto_id = ? ORDER BY price ASC"
+        : "SELECT * FROM vault_packages WHERE is_active = TRUE AND collecto_id = ? ORDER BY price ASC";
+      const [rows] = await pool.query<VaultPackageRow[]>(query, [collectoId]);
+      return rows.map((row) => this.mapRowToVaultPackage(row));
+    }
+
     const query = includeInactive
       ? "SELECT * FROM vault_packages ORDER BY price ASC"
       : "SELECT * FROM vault_packages WHERE is_active = TRUE ORDER BY price ASC";
@@ -57,7 +67,16 @@ export class VaultPackageRepository {
     return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
   }
 
-  async findPopular(): Promise<VaultPackage[]> {
+  async findPopular(collectoId?: string): Promise<VaultPackage[]> {
+    if (collectoId) {
+      const [rows] = await pool.query<VaultPackageRow[]>(
+        "SELECT * FROM vault_packages WHERE is_popular = TRUE AND is_active = TRUE AND collecto_id = ? ORDER BY price ASC",
+        [collectoId]
+      );
+
+      return rows.map((row) => this.mapRowToVaultPackage(row));
+    }
+
     const [rows] = await pool.query<VaultPackageRow[]>(
       "SELECT * FROM vault_packages WHERE is_popular = TRUE AND is_active = TRUE ORDER BY price ASC"
     );
@@ -65,7 +84,16 @@ export class VaultPackageRepository {
     return rows.map((row) => this.mapRowToVaultPackage(row));
   }
 
-  async findActive(): Promise<VaultPackage[]> {
+  async findActive(collectoId?: string): Promise<VaultPackage[]> {
+    if (collectoId) {
+      const [rows] = await pool.query<VaultPackageRow[]>(
+        "SELECT * FROM vault_packages WHERE is_active = TRUE AND collecto_id = ? ORDER BY price ASC",
+        [collectoId]
+      );
+
+      return rows.map((row) => this.mapRowToVaultPackage(row));
+    }
+
     const [rows] = await pool.query<VaultPackageRow[]>(
       "SELECT * FROM vault_packages WHERE is_active = TRUE ORDER BY price ASC"
     );
@@ -74,6 +102,7 @@ export class VaultPackageRepository {
   }
 
   async create(
+    collectoId: string | null,
     name: string,
     pointsAmount: number,
     price: number,
@@ -81,9 +110,9 @@ export class VaultPackageRepository {
     isPopular = false
   ): Promise<VaultPackage> {
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO vault_packages (name, points_amount, price, created_by, is_popular) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [name, pointsAmount, price, createdBy, isPopular]
+      `INSERT INTO vault_packages (collecto_id, name, points_amount, price, created_by, is_popular) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [collectoId, name, pointsAmount, price, createdBy, isPopular]
     );
 
     const vaultPackage = await this.findById(result.insertId);

@@ -2,6 +2,7 @@ import { TierRepository } from "../repositories/tier.repository";
 import { Tier } from "../models/Tier.model";
 
 export interface CreateTierDTO {
+  collectoId: string;
   name: string;
   pointsRequired: number;
   earningMultiplier: number;
@@ -18,8 +19,8 @@ export interface UpdateTierDTO {
 export class TierService {
   constructor(private readonly tierRepository: TierRepository) {}
 
-  async getAllTiers(includeInactive = false): Promise<Tier[]> {
-    return this.tierRepository.findAll(includeInactive);
+  async getAllTiers(includeInactive = false, collectoId?: string): Promise<Tier[]> {
+    return this.tierRepository.findAll(includeInactive, collectoId);
   }
 
   async getTierById(id: number): Promise<Tier> {
@@ -42,6 +43,10 @@ export class TierService {
     // Validate inputs
     this.validateTierData(dto);
 
+    if (!dto.collectoId || typeof dto.collectoId !== 'string') {
+      throw new Error('collectoId is required');
+    }
+
     // Check for duplicate name
     const existingTier = await this.tierRepository.findByName(dto.name);
     if (existingTier) {
@@ -49,6 +54,7 @@ export class TierService {
     }
 
     return this.tierRepository.create(
+      dto.collectoId,
       dto.name,
       dto.pointsRequired,
       dto.earningMultiplier,

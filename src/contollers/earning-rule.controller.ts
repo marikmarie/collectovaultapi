@@ -12,12 +12,14 @@ export class EarningRuleController {
     try {
       const includeInactive = req.query.includeInactive === "true";
       const rules = await this.earningRuleService.getAllRules(includeInactive);
-
+      console.log('Fetched all earning rules');
       res.status(200).json({
         success: true,
         data: rules,
         count: rules.length,
       });
+
+      console.log(`Retrieved ${rules.length} earning rules`);
     } catch (err) {
       next(err);
     }
@@ -106,12 +108,17 @@ export class EarningRuleController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { ruleTitle, description, points } = req.body;
+      const { collectoId, ruleTitle, description, points } = req.body;
 
-      
+      if (!collectoId || typeof collectoId !== 'string') {
+        res.status(400).json({ success: false, error: 'collectoId is required' });
+        return;
+      }
+
       const createdBy = (req as any).user?.id || "system";
 
       const rule = await this.earningRuleService.createRule({
+        collectoId,
         ruleTitle,
         description,
         points,

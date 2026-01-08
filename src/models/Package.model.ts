@@ -1,6 +1,7 @@
 export class VaultPackage {
   constructor(
     public readonly id: number,
+    public collectoId: string | null,
     public name: string,
     public pointsAmount: number,
     public price: number,

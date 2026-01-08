@@ -2,6 +2,7 @@ import { EarningRuleRepository } from "../repositories/earning-rule.repository";
 import { EarningRule } from "../models/EarningRules.model";
 
 export interface CreateEarningRuleDTO {
+  collectoId: string;
   ruleTitle: string;
   description: string;
   points: number;
@@ -18,12 +19,12 @@ export interface UpdateEarningRuleDTO {
 export class EarningRuleService {
   constructor(private readonly earningRuleRepository: EarningRuleRepository) {}
 
-  async getAllRules(includeInactive = false): Promise<EarningRule[]> {
-    return this.earningRuleRepository.findAll(includeInactive);
+  async getAllRules(includeInactive = false, collectoId?: string): Promise<EarningRule[]> {
+    return this.earningRuleRepository.findAll(includeInactive, collectoId);
   }
 
-  async getActiveRules(): Promise<EarningRule[]> {
-    return this.earningRuleRepository.findActive();
+  async getActiveRules(collectoId?: string): Promise<EarningRule[]> {
+    return this.earningRuleRepository.findActive(collectoId);
   }
 
   async getRuleById(id: number): Promise<EarningRule> {
@@ -44,7 +45,8 @@ export class EarningRuleService {
 
   async getRulesByPointsRange(
     minPoints: number,
-    maxPoints: number
+    maxPoints: number,
+    collectoId?: string
   ): Promise<EarningRule[]> {
     if (minPoints < 0 || maxPoints < 0) {
       throw new Error("Points cannot be negative");
@@ -53,12 +55,16 @@ export class EarningRuleService {
       throw new Error("Minimum points cannot be greater than maximum points");
     }
 
-    return this.earningRuleRepository.findByPointsRange(minPoints, maxPoints);
+    return this.earningRuleRepository.findByPointsRange(minPoints, maxPoints, collectoId);
   }
 
   async createRule(dto: CreateEarningRuleDTO): Promise<EarningRule> {
     // Validate inputs
     this.validateRuleData(dto);
+
+    if (!dto.collectoId || typeof dto.collectoId !== 'string') {
+      throw new Error('collectoId is required');
+    }
 
     // Check for duplicate title
     const existingRule = await this.earningRuleRepository.findByTitle(
@@ -71,6 +77,7 @@ export class EarningRuleService {
     }
 
     return this.earningRuleRepository.create(
+      dto.collectoId,
       dto.ruleTitle,
       dto.description,
       dto.points,

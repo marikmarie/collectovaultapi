@@ -1,6 +1,7 @@
 export class EarningRule {
   constructor(
     public readonly id: number,
+    public collectoId: string | null,
     public description: string,
     public ruleTitle: string,
     public points: number,
@@ -10,6 +11,7 @@ export class EarningRule {
     public isActive: boolean
   ) {}
 
+  
   deactivate() {
     this.isActive = false;
     this.updatedAt = new Date();

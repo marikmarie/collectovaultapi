@@ -3,6 +3,7 @@ import { VaultPackageRepository } from "../repositories/vault-package.repository
 import { VaultPackage } from "../models/Package.model";
 
 export interface CreateVaultPackageDTO {
+  collectoId: string;
   name: string;
   pointsAmount: number;
   price: number;
@@ -23,16 +24,16 @@ export class VaultPackageService {
     private readonly vaultPackageRepository: VaultPackageRepository
   ) {}
 
-  async getAllPackages(includeInactive = false): Promise<VaultPackage[]> {
-    return this.vaultPackageRepository.findAll(includeInactive);
+  async getAllPackages(includeInactive = false, collectoId?: string): Promise<VaultPackage[]> {
+    return this.vaultPackageRepository.findAll(includeInactive, collectoId);
   }
 
-  async getActivePackages(): Promise<VaultPackage[]> {
-    return this.vaultPackageRepository.findActive();
+  async getActivePackages(collectoId?: string): Promise<VaultPackage[]> {
+    return this.vaultPackageRepository.findActive(collectoId);
   }
 
-  async getPopularPackages(): Promise<VaultPackage[]> {
-    return this.vaultPackageRepository.findPopular();
+  async getPopularPackages(collectoId?: string): Promise<VaultPackage[]> {
+    return this.vaultPackageRepository.findPopular(collectoId);
   }
 
   async getPackageById(id: number): Promise<VaultPackage> {
@@ -55,6 +56,10 @@ export class VaultPackageService {
     // Validate inputs
     this.validatePackageData(dto);
 
+    if (!dto.collectoId || typeof dto.collectoId !== 'string') {
+      throw new Error('collectoId is required');
+    }
+
     // Check for duplicate name
     const existingPackage = await this.vaultPackageRepository.findByName(
       dto.name
@@ -64,6 +69,7 @@ export class VaultPackageService {
     }
 
     return this.vaultPackageRepository.create(
+      dto.collectoId,
       dto.name,
       dto.pointsAmount,
       dto.price,

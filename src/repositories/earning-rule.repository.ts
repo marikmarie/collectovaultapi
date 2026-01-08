@@ -5,6 +5,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface EarningRuleRow extends RowDataPacket {
   id: number;
+  collecto_id?: string | null;
   description: string;
   rule_title: string;
   points: number;
@@ -18,6 +19,7 @@ export class EarningRuleRepository {
   private mapRowToEarningRule(row: EarningRuleRow): EarningRule {
     return new EarningRule(
       row.id,
+      row.collecto_id ?? null,
       row.description,
       row.rule_title,
       row.points,
@@ -28,7 +30,15 @@ export class EarningRuleRepository {
     );
   }
 
-  async findAll(includeInactive = false): Promise<EarningRule[]> {
+  async findAll(includeInactive = false, collectoId?: string): Promise<EarningRule[]> {
+    if (collectoId) {
+      const query = includeInactive
+        ? "SELECT * FROM vault_point_rules WHERE collecto_id = ? ORDER BY points DESC"
+        : "SELECT * FROM vault_point_rules WHERE is_active = TRUE AND collecto_id = ? ORDER BY points DESC";
+      const [rows] = await pool.query<EarningRuleRow[]>(query, [collectoId]);
+      return rows.map((row) => this.mapRowToEarningRule(row));
+    }
+
     const query = includeInactive
       ? "SELECT * FROM vault_point_rules ORDER BY points DESC"
       : "SELECT * FROM vault_point_rules WHERE is_active = TRUE ORDER BY points DESC";
@@ -55,7 +65,16 @@ export class EarningRuleRepository {
     return rows.length > 0 ? this.mapRowToEarningRule(rows[0]) : null;
   }
 
-  async findActive(): Promise<EarningRule[]> {
+  async findActive(collectoId?: string): Promise<EarningRule[]> {
+    if (collectoId) {
+      const [rows] = await pool.query<EarningRuleRow[]>(
+        "SELECT * FROM vault_point_rules WHERE is_active = TRUE AND collecto_id = ? ORDER BY points DESC",
+        [collectoId]
+      );
+
+      return rows.map((row) => this.mapRowToEarningRule(row));
+    }
+
     const [rows] = await pool.query<EarningRuleRow[]>(
       "SELECT * FROM vault_point_rules WHERE is_active = TRUE ORDER BY points DESC"
     );
@@ -65,8 +84,18 @@ export class EarningRuleRepository {
 
   async findByPointsRange(
     minPoints: number,
-    maxPoints: number
+    maxPoints: number,
+    collectoId?: string
   ): Promise<EarningRule[]> {
+    if (collectoId) {
+      const [rows] = await pool.query<EarningRuleRow[]>(
+        "SELECT * FROM vault_point_rules WHERE points BETWEEN ? AND ? AND is_active = TRUE AND collecto_id = ? ORDER BY points DESC",
+        [minPoints, maxPoints, collectoId]
+      );
+
+      return rows.map((row) => this.mapRowToEarningRule(row));
+    }
+
     const [rows] = await pool.query<EarningRuleRow[]>(
       "SELECT * FROM vault_point_rules WHERE points BETWEEN ? AND ? AND is_active = TRUE ORDER BY points DESC",
       [minPoints, maxPoints]
@@ -76,15 +105,16 @@ export class EarningRuleRepository {
   }
 
   async create(
+    collectoId: string | null,
     ruleTitle: string,
     description: string,
     points: number,
     createdBy: string
   ): Promise<EarningRule> {
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO vault_point_rules (rule_title, description, points, created_by) 
-       VALUES (?, ?, ?, ?)`,
-      [ruleTitle, description, points, createdBy]
+      `INSERT INTO vault_point_rules (collecto_id, rule_title, description, points, created_by) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [collectoId, ruleTitle, description, points, createdBy]
     );
 
     const earningRule = await this.findById(result.insertId);
