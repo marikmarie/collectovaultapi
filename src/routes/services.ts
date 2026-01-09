@@ -28,7 +28,7 @@ router.post("/services", async (req: Request, res: Response) => {
     const { collectoId, page } = req.body;
     const token = req.headers.authorization as string | undefined;
     const pageNumber = typeof page === "number" ? page : parseInt(page) || 1;
-    console.log("Collecto ID:", collectoId);
+    //console.log("Collecto ID:", collectoId);
 
     if (!collectoId) {
       return res
@@ -36,6 +36,7 @@ router.post("/services", async (req: Request, res: Response) => {
         .json({ message: "collectoId is required in the request body" });
     }
 
+    console.log("Fetching services for collectoId:", collectoId, "page:", pageNumber);
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`,
       { collectoId, page: pageNumber },
@@ -43,7 +44,7 @@ router.post("/services", async (req: Request, res: Response) => {
         headers: collectoHeaders(token),
       }
     );
-    console.log("Services Response:", JSON.stringify(response.data, null, 2));
+   // console.log("Services Response:", JSON.stringify(response.data, null, 2));
     return res.json(response.data);
   } catch (err: any) {
     console.error("Fetch Error:", err?.response?.data || err.message);
@@ -89,14 +90,15 @@ router.get("/invoices", async (req: Request, res: Response) => {
 router.post("/invoice", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    const { items, amount, phone } = req.body;
-
-    console.log("Invoice Request Body:", JSON.stringify(req.body, null, 2));
+    const { items, amount, vaultOTPToken } = req.body;
+    console.log("Invoice request received:", req.body);
     if (!userToken) return res.status(401).send("Missing user token");
     if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).send("Missing items in request body");
 
-   
+   // 1) New: items: [{ collectoId, clientId, serviceId, serviceName, Quantity, totalAmount }, ...]
+    // 2) Legacy: items: [{ serviceId, serviceName, amount, quantity }, ...] with collectoId & clientId at top-level
+
      // Helper to support multiple item field shapes (Quantity / quantity, totalAmount / total / amount)
     const getQuantity = (it: any) => (Number(it?.Quantity ?? it?.quantity ?? it?.qty ?? 0));
     const getTotal = (it: any) => (Number(it?.totalAmount ?? it?.total ?? it?.total_amount ?? it?.amount ?? 0));
@@ -111,7 +113,6 @@ router.post("/invoice", async (req: Request, res: Response) => {
     let forwardItems: any[] = [];
 
     if (isNewShape) {
-      // Ensure all items have the same collectoId and clientId
       const collectoSet = new Set(items.map((it: any) => String(it.collectoId)));
       const clientSet = new Set(items.map((it: any) => String(it.clientId)));
       if (collectoSet.size > 1 || clientSet.size > 1) return res.status(400).send("Mismatched collectoId or clientId across items");
@@ -135,8 +136,10 @@ router.post("/invoice", async (req: Request, res: Response) => {
         };
       });
     } else {
-      // Legacy shape - validate elements (expect amount & quantity fields)
-      const invalidItem = items.find((it: any) => !it.serviceId || !it.serviceName || (it.quantity === undefined) || (it.amount === undefined));
+      // Legacy shapes:
+      // - items with { amount, quantity }
+      // - or items with { totalAmount, quantity } and top-level collectoId & clientId
+      const invalidItem = items.find((it: any) => !it.serviceId || !it.serviceName || (it.quantity === undefined) || (it.amount === undefined && it.totalAmount === undefined));
       if (invalidItem) return res.status(400).send("One or more items are missing required fields (legacy shape expected)");
 
       // collectoId and clientId should be provided at the top-level (fallback)
@@ -145,30 +148,48 @@ router.post("/invoice", async (req: Request, res: Response) => {
       if (!collectoId) return res.status(400).send("collectoId is required");
       if (!clientId) return res.status(400).send("clientId (customer id) is required");
 
-      forwardItems = items.map((it: any) => ({
-        serviceId: it.serviceId,
-        serviceName: it.serviceName,
-        amount: Number(it.amount),
-        quantity: Number(it.quantity),
-      }));
+      forwardItems = items.map((it: any) => {
+        const quantity = Number(it.quantity);
+        if (it.amount !== undefined) {
+          return {
+            serviceId: it.serviceId,
+            serviceName: it.serviceName,
+            amount: Number(it.amount),
+            quantity,
+          };
+        }
+        // totalAmount provided per item - compute unit amount
+        const total = Number(it.totalAmount);
+        const unit = quantity > 0 ? total / quantity : total;
+        return {
+          serviceId: it.serviceId,
+          serviceName: it.serviceName,
+          amount: Number(unit),
+          quantity,
+        };
+      });
     }
 
     // Compute total amount from items
     const computedAmount = forwardItems.reduce((acc: number, it: any) => acc + Number(it.amount) * Number(it.quantity), 0);
+    const providedTotal = req.body.totalAmount;
+    const finalAmount = providedTotal !== undefined && providedTotal !== null ? Number(providedTotal) : Number(computedAmount);
 
     const payload: any = {
+      // include vaultOTPToken if provided by client
+      ...(vaultOTPToken ? { vaultOTPToken } : {}),
       items: forwardItems,
-      amount: Number(computedAmount),
+      amount: Number(finalAmount),
       collectoId,
       clientId,
     };
-
-    if (phone) payload.phone = phone;
 
     // Forward to Collecto createInvoice
     const response = await axios.post(`${BASE_URL}/createInvoice`, payload, {
       headers: collectoHeaders(userToken),
     });
+
+    console.log("Invoice created:", response.data);
 
     return res.json(response.data);
   } catch (err: any) {
