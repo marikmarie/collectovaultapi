@@ -58,6 +58,7 @@ export class TierController {
         res.status(400).json({ success: false, error: "Invalid collectoId" });
         return;
       }
+      console.log("Fetching tiers for collectoId:", collectoId);
 
       const tiers = await this.tierService.getTiersByCollectoId(collectoId);
       res.status(200).json({ success: true, data: tiers, count: tiers.length });

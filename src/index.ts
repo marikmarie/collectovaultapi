@@ -15,7 +15,7 @@ app.use(express.json());
 
 app.use("/", servicesRouter);
 app.use("/", collectoRouter);
-app.use("/tiers", tierRouter);
+app.use("/tier", tierRouter);
 app.use("/vaultPackages", vaultPackageRouter);
 app.use("/pointRules", earningRuleRouter);
 

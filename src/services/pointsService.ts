@@ -1,10 +1,6 @@
 import { pool } from "../db";
 
-/**
- * Apply point rules to a list of transactions and persist ledger entries.
- * @param collectoCustomerId - the customer id returned by Collecto
- * @param transactions - array of transactions from Collecto; minimally should contain { id, amount, currency, date }
- */
+
 export async function computeAndApplyPointsForCustomer(
   collectoCustomerId: string,
   transactions: Array<any>
@@ -32,9 +28,7 @@ export async function computeAndApplyPointsForCustomer(
     const balanceRow: any = (balRows as any[])[0];
     let currentBalance = Number(balanceRow.points_balance || 0);
 
-    // For each transaction compute points using rules (simple strategy: apply first matching rule by event_type='transaction' and min/max)
     for (const tx of transactions) {
-      // check if we already created ledger entry for this transaction (idempotency)
       const [existing] = await conn.query(
         `SELECT id FROM points_ledger WHERE source_type='transaction' AND source_id=? LIMIT 1`,
         [tx.id]

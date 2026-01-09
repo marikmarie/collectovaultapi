@@ -24,7 +24,6 @@ function collectoHeaders(userToken?: string) {
 
 router.post("/services", async (req: Request, res: Response) => {
   try {
-    // In a POST request, data usually comes from req.body
     const { collectoId, page } = req.body;
     const token = req.headers.authorization as string | undefined;
     const pageNumber = typeof page === "number" ? page : parseInt(page) || 1;
@@ -77,15 +76,7 @@ router.get("/invoices", async (req: Request, res: Response) => {
     });
   }
 });
-/**
- * POST /api/invoice
- * Unified invoice endpoint for creating invoices (Place Order behavior).
- * body: {
- *   items: [{ serviceId, serviceName, amount, quantity }],
- *   amount: number,
- *   phone?: string,
- * }
- */
+
 
 router.post("/invoice", async (req: Request, res: Response) => {
   try {
@@ -201,16 +192,11 @@ router.post("/invoice", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/pay
- * DEPRECATED: use POST /api/invoice with { payNow: 1 }
- */
+
 router.post("/pay", async (req: Request, res: Response) => {
   return res.status(400).json({ message: "Endpoint deprecated. Use POST /invoice/pay to pay an existing invoice" });
 });
 
-
-// Pay an existing invoice
 router.post("/invoice/pay", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
