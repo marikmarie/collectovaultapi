@@ -316,7 +316,7 @@ router.post("/invoice/pay", async (req: Request, res: Response) => {
       await customerService.processInvoicePayment(collectoId, clientId, {
         amount: paymentAmount,
         invoiceId: invoiceId,
-        ruleId: undefined, // Will use default earning rule
+        ruleId: undefined, 
       });
 
       console.log(
@@ -490,89 +490,6 @@ router.get("/payments", async (req: Request, res: Response) => {
     return res.status(error?.response?.status || 500).json({
       message: "Failed to fetch payments",
       error: error?.response?.data || error.message,
-    });
-  }
-});
-
-// Process payments and update customer points
-router.post("/payments/process", async (req: Request, res: Response) => {
-  try {
-    const userToken = req.headers.authorization;
-    const { payments } = req.body; // payments: Array of { invoiceId, amount, collectoId, clientId }
-
-    if (!userToken) return res.status(401).send("Missing user token");
-    if (!payments || !Array.isArray(payments) || payments.length === 0) {
-      return res.status(400).send("Missing payments array in request body");
-    }
-
-    const results: any[] = [];
-    const errors: any[] = [];
-
-    // Process each payment
-    for (const payment of payments) {
-      try {
-        const { invoiceId, amount, collectoId, clientId } = payment;
-
-        if (!invoiceId || !amount || !collectoId || !clientId) {
-          errors.push({
-            invoiceId,
-            error: "Missing invoiceId, amount, collectoId, or clientId",
-          });
-          continue;
-        }
-
-        // Process customer points based on payment
-        const customer = await customerService.processInvoicePayment(
-          collectoId,
-          clientId,
-          {
-            amount,
-            invoiceId,
-            ruleId: undefined,
-          }
-        );
-
-        results.push({
-          invoiceId,
-          clientId,
-          amount,
-          success: true,
-          customer: {
-            id: customer.id,
-            points: customer.currentPoints,
-            tier: customer.currentTierId,
-            totalPurchased: customer.totalPurchased,
-          },
-        });
-
-        console.log(
-          `✓ Processed payment ${invoiceId} for customer ${clientId} - Points updated`
-        );
-      } catch (paymentErr: any) {
-        errors.push({
-          invoiceId: payment.invoiceId,
-          clientId: payment.clientId,
-          error: paymentErr.message,
-        });
-        console.error(
-          `✗ Failed to process payment ${payment.invoiceId}:`,
-          paymentErr.message
-        );
-      }
-    }
-
-    return res.json({
-      success: errors.length === 0,
-      processed: results.length,
-      failed: errors.length,
-      results,
-      errors: errors.length > 0 ? errors : undefined,
-    });
-  } catch (err: any) {
-    console.error(err?.response?.data || err.message);
-    return res.status(500).json({
-      message: "Batch payment processing failed",
-      error: err?.response?.data || err.message,
     });
   }
 });
