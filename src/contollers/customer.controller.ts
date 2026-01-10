@@ -258,49 +258,7 @@ export class CustomerController {
     }
   };
 
-  /**
-   * Redeem points
-   */
-  redeemPoints = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
-    try {
-      const customerId = parseInt(req.params.customerId, 10);
-      const { pointsToRedeem } = req.body;
 
-      if (isNaN(customerId)) {
-        res.status(400).json({
-          success: false,
-          error: "Invalid customer ID",
-        });
-        return;
-      }
-
-      if (!pointsToRedeem || pointsToRedeem <= 0) {
-        res.status(400).json({
-          success: false,
-          error: "pointsToRedeem must be greater than 0",
-        });
-        return;
-      }
-
-      const customer = await this.customerService.redeemPoints(customerId, pointsToRedeem);
-
-      res.status(200).json({
-        success: true,
-        message: "Points redeemed successfully",
-        data: customer,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  /**
-   * Get customer statistics for a collectoId
-   */
   getCustomerStats = async (
     req: Request,
     res: Response,
