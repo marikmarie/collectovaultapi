@@ -8,12 +8,10 @@ import axios from "axios";
 export interface CreateCustomerDTO {
   collectoId: string;
   clientId: string;
-  email: string;
   name: string;
 }
 
 export interface UpdateCustomerDTO {
-  email?: string;
   name?: string;
 }
 
@@ -24,10 +22,9 @@ export interface InvoicePaymentData {
 }
 
 // Dummy data for when Collecto API fails
-const getDummyCustomer = (collectoId: string, clientId: string, email: string, name: string) => ({
+const getDummyCustomer = (collectoId: string, clientId: string, name: string) => ({
   collectoId,
   clientId,
-  email,
   name,
   currentPoints: Math.floor(Math.random() * 500),
   totalPurchased: Math.floor(Math.random() * 10000),
@@ -69,7 +66,6 @@ export class CustomerService {
   async getOrCreateCustomer(
     collectoId: string,
     clientId: string,
-    email: string,
     name: string
   ): Promise<Customer> {
     // Try to find existing customer
@@ -79,13 +75,13 @@ export class CustomerService {
     }
 
     // Create new customer
-    return this.customerRepository.create(collectoId, clientId, email, name);
+    return this.customerRepository.create(collectoId, clientId, name);
   }
 
   async createCustomer(dto: CreateCustomerDTO): Promise<Customer> {
     // Validate
-    if (!dto.collectoId || !dto.clientId || !dto.email || !dto.name) {
-      throw new Error("collectoId, clientId, email, and name are required");
+    if (!dto.collectoId || !dto.clientId || !dto.name) {
+      throw new Error("collectoId, clientId, and name are required");
     }
 
     // Check if customer already exists
@@ -97,7 +93,6 @@ export class CustomerService {
     return this.customerRepository.create(
       dto.collectoId,
       dto.clientId,
-      dto.email,
       dto.name
     );
   }
@@ -106,7 +101,6 @@ export class CustomerService {
     const customer = await this.getCustomerById(id);
 
     return this.customerRepository.update(id, {
-      email: dto.email ?? customer.email,
       name: dto.name ?? customer.name,
     }) as Promise<Customer>;
   }
@@ -125,11 +119,10 @@ export class CustomerService {
       
       if (!customer) {
         // Create customer with dummy data if doesn't exist
-        const dummyData = getDummyCustomer(collectoId, clientId, "customer@example.com", "New Customer");
+        const dummyData = getDummyCustomer(collectoId, clientId, "New Customer");
         customer = await this.customerRepository.create(
           collectoId,
           clientId,
-          dummyData.email,
           dummyData.name
         );
       }
@@ -141,10 +134,10 @@ export class CustomerService {
         customer.currentTierId
       );
 
-      // Add points to customer
-      customer = (await this.customerRepository.addPoints(customer.id, pointsEarned)) as Customer;
+      // Add earned points to customer (earned from invoice/payment)
+      customer = (await this.customerRepository.addEarnedPoints(customer.id, pointsEarned)) as Customer;
 
-      // Update total purchased
+      // Update total purchased (amount of the payment)
       customer = (await this.customerRepository.updateTotalPurchased(
         customer.id,
         paymentData.amount
@@ -179,7 +172,7 @@ export class CustomerService {
       throw new Error("Purchase amount must be greater than 0");
     }
 
-    let customer = (await this.customerRepository.addPoints(customerId, pointsToPurchase)) as Customer;
+    let customer = (await this.customerRepository.addBoughtPoints(customerId, pointsToPurchase)) as Customer;
 
     // Update total purchased
     customer = (await this.customerRepository.updateTotalPurchased(customerId, amount)) as Customer;
@@ -209,7 +202,7 @@ export class CustomerService {
       );
     }
 
-    const updated = (await this.customerRepository.deductPoints(
+    const updated = (await this.customerRepository.redeemPoints(
       customerId,
       pointsToRedeem
     )) as Customer;
@@ -336,7 +329,6 @@ export class CustomerService {
         customer = await this.customerRepository.create(
           collectoId,
           clientId,
-          "customer@example.com",
           "New Customer"
         );
       }
@@ -376,8 +368,8 @@ export class CustomerService {
           customer.currentTierId
         );
 
-        // Add points to customer
-        customer = (await this.customerRepository.addPoints(
+        // Add earned points to customer (earned from invoice)
+        customer = (await this.customerRepository.addEarnedPoints(
           customer.id,
           pointsEarned
         )) as Customer;
@@ -419,8 +411,7 @@ export class CustomerService {
         customer = await this.customerRepository.create(
           collectoId,
           clientId,
-          "customer@example.com",
-          "New Customer"
+         "New Customer"
         );
       }
 
@@ -459,8 +450,8 @@ export class CustomerService {
           customer.currentTierId
         );
 
-        // Add points to customer
-        customer = (await this.customerRepository.addPoints(
+        // Add earned points to customer (from payment)
+        customer = (await this.customerRepository.addEarnedPoints(
           customer.id,
           pointsEarned
         )) as Customer;

@@ -105,12 +105,12 @@ export class CustomerController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { collectoId, clientId, email, name } = req.body;
+      const { collectoId, clientId, name } = req.body;
 
-      if (!collectoId || !clientId || !email || !name) {
+      if (!collectoId || !clientId || !name) {
         res.status(400).json({
           success: false,
-          error: "collectoId, clientId, email, and name are required",
+          error: "collectoId, clientId, and name are required",
         });
         return;
       }
@@ -118,7 +118,6 @@ export class CustomerController {
       const customer = await this.customerService.createCustomer({
         collectoId,
         clientId,
-        email,
         name,
       });
 
@@ -141,7 +140,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const id = parseInt(req.params.id, 10);
-      const { email, name } = req.body;
+      const { name } = req.body;
 
       if (isNaN(id)) {
         res.status(400).json({
@@ -152,7 +151,6 @@ export class CustomerController {
       }
 
       const customer = await this.customerService.updateCustomer(id, {
-        email,
         name,
       });
 

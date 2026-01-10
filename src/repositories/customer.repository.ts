@@ -6,9 +6,10 @@ interface CustomerRow extends RowDataPacket {
   id: number;
   collecto_id: string;
   client_id: string;
-  email: string;
   name: string;
   current_points: number;
+  earned_points: number;
+  bought_points: number;
   tier_id: number | null;
   total_purchased: number;
   created_at: Date;
@@ -22,9 +23,10 @@ export class CustomerRepository {
       row.id,
       row.collecto_id,
       row.client_id,
-      row.email,
       row.name,
       row.current_points,
+      row.earned_points,
+      row.bought_points,
       row.tier_id ?? null,
       row.total_purchased,
       row.created_at,
@@ -32,6 +34,7 @@ export class CustomerRepository {
       Boolean(row.is_active)
     );
   }
+
 
   async findAll(collectoId?: string): Promise<Customer[]> {
     let query = "SELECT * FROM vault_customers WHERE is_active = TRUE";
@@ -70,18 +73,7 @@ export class CustomerRepository {
     return rows.length > 0 ? this.mapRowToCustomer(rows[0]) : null;
   }
 
-  async findByEmail(email: string, collectoId?: string): Promise<Customer | null> {
-    let query = "SELECT * FROM vault_customers WHERE email = ? AND is_active = TRUE";
-    const params: any[] = [email];
 
-    if (collectoId) {
-      query += " AND collecto_id = ?";
-      params.push(collectoId);
-    }
-
-    const [rows] = await pool.query<CustomerRow[]>(query, params);
-    return rows.length > 0 ? this.mapRowToCustomer(rows[0]) : null;
-  }
 
   async findByCollectoId(collectoId: string): Promise<Customer[]> {
     const [rows] = await pool.query<CustomerRow[]>(
@@ -95,15 +87,14 @@ export class CustomerRepository {
   async create(
     collectoId: string,
     clientId: string,
-    email: string,
     name: string,
     currentPoints: number = 0,
     currentTierId: number | null = null
   ): Promise<Customer> {
     const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO vault_customers (collecto_id, client_id, email, name, current_points, tier_id, total_purchased, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [collectoId, clientId, email, name, currentPoints, currentTierId, 0, true]
+      `INSERT INTO vault_customers (collecto_id, client_id, name, current_points, earned_points, bought_points, tier_id, total_purchased, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [collectoId, clientId, name, currentPoints, 0, 0, currentTierId, 0, true]
     );
 
     const customerId = result.insertId;
@@ -125,19 +116,41 @@ export class CustomerRepository {
     return this.findById(customerId);
   }
 
-  async addPoints(customerId: number, pointsToAdd: number): Promise<Customer | null> {
+  // Add earned (non-purchased) points
+  async addEarnedPoints(customerId: number, pointsToAdd: number): Promise<Customer | null> {
     await pool.query(
-      "UPDATE vault_customers SET current_points = current_points + ?, updated_at = NOW() WHERE id = ?",
-      [pointsToAdd, customerId]
+      `UPDATE vault_customers
+       SET earned_points = earned_points + ?, current_points = current_points + ?, updated_at = NOW()
+       WHERE id = ?`,
+      [pointsToAdd, pointsToAdd, customerId]
     );
 
     return this.findById(customerId);
   }
 
-  async deductPoints(customerId: number, pointsToDeduct: number): Promise<Customer | null> {
+  // Add bought (purchased) points
+  async addBoughtPoints(customerId: number, pointsToAdd: number): Promise<Customer | null> {
     await pool.query(
-      "UPDATE vault_customers SET current_points = GREATEST(0, current_points - ?), updated_at = NOW() WHERE id = ?",
-      [pointsToDeduct, customerId]
+      `UPDATE vault_customers
+       SET bought_points = bought_points + ?, current_points = current_points + ?, updated_at = NOW()
+       WHERE id = ?`,
+      [pointsToAdd, pointsToAdd, customerId]
+    );
+
+    return this.findById(customerId);
+  }
+
+  // Redeem points: consume earned points first, then bought points
+  async redeemPoints(customerId: number, pointsToRedeem: number): Promise<Customer | null> {
+    await pool.query(
+      `UPDATE vault_customers
+       SET
+         earned_points = GREATEST(0, earned_points - LEAST(earned_points, ?)),
+         bought_points = GREATEST(0, bought_points - GREATEST(0, ? - earned_points)),
+         current_points = GREATEST(0, current_points - ?),
+         updated_at = NOW()
+       WHERE id = ?`,
+      [pointsToRedeem, pointsToRedeem, pointsToRedeem, customerId]
     );
 
     return this.findById(customerId);
@@ -180,10 +193,7 @@ export class CustomerRepository {
     const setClause: string[] = [];
     const values: any[] = [];
 
-    if (updates.email !== undefined) {
-      setClause.push("email = ?");
-      values.push(updates.email);
-    }
+
     if (updates.name !== undefined) {
       setClause.push("name = ?");
       values.push(updates.name);
@@ -191,6 +201,14 @@ export class CustomerRepository {
     if (updates.currentPoints !== undefined) {
       setClause.push("current_points = ?");
       values.push(updates.currentPoints);
+    }
+    if (updates.earnedPoints !== undefined) {
+      setClause.push("earned_points = ?");
+      values.push(updates.earnedPoints);
+    }
+    if (updates.boughtPoints !== undefined) {
+      setClause.push("bought_points = ?");
+      values.push(updates.boughtPoints);
     }
     if (updates.currentTierId !== undefined) {
       setClause.push("tier_id = ?");
