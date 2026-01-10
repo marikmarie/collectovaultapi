@@ -6,6 +6,7 @@ import collectoRouter from "./routes/authCollecto";
 import tierRouter from "./routes/tier.routes";
 import vaultPackageRouter from "./routes/vault-package.routes";
 import earningRuleRouter from "./routes/earning-rule.routes";
+import { CustomerRoutes } from "./routes/customer.routes";
 
 dotenv.config();
 const app = express();
@@ -18,6 +19,7 @@ app.use("/", collectoRouter);
 app.use("/tier", tierRouter);
 app.use("/vaultPackages", vaultPackageRouter);
 app.use("/pointRules", earningRuleRouter);
+app.use("/customers", CustomerRoutes());
 
 app.get("/", (_, res) => {
   res.send("CollectoVault API proxy running");
