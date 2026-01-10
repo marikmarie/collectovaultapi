@@ -21,7 +21,6 @@ export interface InvoicePaymentData {
   ruleId?: number;
 }
 
-// Dummy data for when Collecto API fails
 const getDummyCustomer = (collectoId: string, clientId: string, name: string) => ({
   collectoId,
   clientId,
