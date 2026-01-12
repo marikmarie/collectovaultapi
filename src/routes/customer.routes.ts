@@ -30,7 +30,7 @@ export const CustomerRoutes = (): Router => {
   router.post("/", customerController.createCustomer);
   router.post("/invoice-payment", customerController.processInvoicePayment);
   router.post("/:customerId/purchase-points", customerController.purchasePoints);
-  router.post("/:customerId/redeem-points", customerController.redeemPoints);
+ // router.post("/:customerId/redeem-points", customerController.redeemPoints);
 
   // PUT/PATCH endpoints
   router.patch("/:id", customerController.updateCustomer);
