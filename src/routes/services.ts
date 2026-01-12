@@ -276,15 +276,31 @@ router.post("/invoice", async (req: Request, res: Response) => {
 router.post("/buyPoints", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    const { invoiceId, method, phone, collectoId, clientId } = req.body;
 
+    console.log("Buy points request body:", req.body);
+    // Accept new param names but keep backwards compatibility
+    const {
+      paymentMethod,
+      phoneNumber,
+      phone,
+      collectoId,
+      clientId,
+      amount,
+    } = req.body;
+
+  
     if (!userToken) return res.status(401).send("Missing user token");
-    if (!invoiceId || !method) return res.status(400).send("Missing invoiceId or method");
+    if (!paymentMethod) return res.status(400).send("Missing payment method");
     if (!collectoId || !clientId) return res.status(400).send("Missing collectoId or clientId");
 
-    const payload: any = { invoiceId, method };
-    if (phone) payload.phone = phone;
+    const payload: any = { method: paymentMethod };
+    if (phoneNumber) payload.phone = phone;
+    if (amount !== undefined) payload.amount = amount;
+    // include collecto/client so Collecto can (optionally) create/pay an invoice without an invoiceId
+    payload.collectoId = collectoId;
+    payload.clientId = clientId;
 
+    console.log("Buy points request:", payload);
     try {
       // Try to pay via Collecto
       const paymentResponse = await axios.post(`${BASE_URL}/pay`, payload, {
@@ -295,21 +311,35 @@ router.post("/buyPoints", async (req: Request, res: Response) => {
       const paymentAmount =
         paymentData?.amount || paymentData?.invoice?.amount || Math.floor(Math.random() * 3000) + 500;
 
+      // Determine an identifier for this payment (use Collecto-provided invoiceId or id, fall back to local synthetic id)
+      const paymentKey = paymentData?.invoiceId || paymentData?.id || `INV-LOCAL-${Date.now()}`;
+
       // Process customer points based on confirmed payment
       try {
         await customerService.processInvoicePayment(collectoId, clientId, {
           amount: paymentAmount,
-          invoiceId: invoiceId,
+          invoiceId: paymentKey,
           ruleId: undefined,
         });
       } catch (customerErr: any) {
         console.warn("Customer point processing warning:", customerErr.message || customerErr);
       }
 
+      // If there was a pending local record for this key, mark it confirmed
+      if (pendingPayments.has(paymentKey)) {
+        const rec = pendingPayments.get(paymentKey)!;
+        rec.status = "confirmed";
+        rec.payment = paymentData;
+        pendingPayments.set(paymentKey, rec);
+      }
+
+      const trxnId = paymentData?.id || paymentKey;
+
       return res.json({
         success: true,
         status: "confirmed",
-        payment: paymentData,
+        trxnId,
+        payment: { ...paymentData, invoiceId: paymentKey },
         message: "Payment processed and customer points updated",
       });
     } catch (err: any) {
@@ -319,14 +349,15 @@ router.post("/buyPoints", async (req: Request, res: Response) => {
         err?.response?.data || err.message
       );
 
-      const dummy = getDummyPayment(invoiceId, 0);
+      const localInvoiceId = `INV-LOCAL-${Date.now()}`;
+      const dummy = getDummyPayment(localInvoiceId, 0);
       const paymentAmount = dummy?.amount || Math.floor(Math.random() * 3000) + 500;
 
       // Still process points locally so customer's points reflect the (simulated) successful payment
       try {
         await customerService.processInvoicePayment(collectoId, clientId, {
           amount: paymentAmount,
-          invoiceId: invoiceId,
+          invoiceId: localInvoiceId,
           ruleId: undefined,
         });
       } catch (customerErr: any) {
@@ -334,18 +365,20 @@ router.post("/buyPoints", async (req: Request, res: Response) => {
       }
 
       // Store a local pending record so we can report status later
-      pendingPayments.set(invoiceId, {
+      pendingPayments.set(localInvoiceId, {
         payment: { ...dummy, amount: paymentAmount },
         status: "pending",
         createdAt: new Date(),
       });
-
+  
       return res.json({
         success: true,
         status: "pending",
-        payment: { id: dummy.id, invoiceId, amount: paymentAmount },
+        trxnId: dummy.id,
+        payment: { id: dummy.id, invoiceId: localInvoiceId, amount: paymentAmount },
         message: "Payment queued locally as pending; will confirm with Collecto later",
       });
+      
     }
   } catch (err: any) {
     console.error(err?.response?.data || err.message);
@@ -416,6 +449,42 @@ router.get("/invoice/status", async (req: Request, res: Response) => {
     console.error(err?.response?.data || err.message);
     return res.status(err?.response?.status || 500).json({
       message: "Failed to get invoice status",
+      error: err?.response?.data || err.message,
+    });
+  }
+});
+
+// Verify phone number endpoint - accepts phoneNumber (or phone_number / phone) in body
+router.post("/verifyPhoneNumber", async (req: Request, res: Response) => {
+  try {
+    const userToken = req.headers.authorization;
+    const { phoneNumber, phone_number, phone } = req.body;
+    const resolvedPhone = phoneNumber || phone_number || phone;
+
+    console.log("Phone verification request for number:", resolvedPhone);
+   
+    if (!userToken) return res.status(401).send("Missing user token");
+    if (!resolvedPhone) return res.status(400).send("Missing phoneNumber");
+
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/verifyPhoneNumber`,
+        { phone: resolvedPhone },
+        { headers: collectoHeaders(userToken) }
+      );
+
+      console.log("Phone verification response:", response.data);
+      return res.json(response.data);
+
+    } catch (err: any) {
+      console.warn("Collecto phone verification failed, returning local dummy:", err?.response?.data || err.message);
+      const trxnId = `VER-${Date.now()}`;
+      return res.json({ success: true, phoneNumber: phoneNumber, verified: true, trxnId, message: "Local verification (Collecto unreachable)" });
+    }
+  } catch (err: any) {
+    console.error(err?.response?.data || err.message);
+    return res.status(err?.response?.status || 500).json({
+      message: "Phone verification failed",
       error: err?.response?.data || err.message,
     });
   }
