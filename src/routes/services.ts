@@ -277,140 +277,128 @@ router.post("/buyPoints", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
 
-    console.log("Buy points request body:", req.body);
-    // Accept new param names but keep backwards compatibility
     const {
-      paymentMethod,
-      phoneNumber,
-      phone,
+      vaultOTPToken,
       collectoId,
       clientId,
+      paymentOption,
+      phone,
       amount,
+      reference,
     } = req.body;
 
-  
     if (!userToken) return res.status(401).send("Missing user token");
-    if (!paymentMethod) return res.status(400).send("Missing payment method");
+    if (!paymentOption) return res.status(400).send("Missing payment method");
     if (!collectoId || !clientId) return res.status(400).send("Missing collectoId or clientId");
 
-    const payload: any = { method: paymentMethod };
-    if (phoneNumber) payload.phone = phone;
-    if (amount !== undefined) payload.amount = amount;
-    // include collecto/client so Collecto can (optionally) create/pay an invoice without an invoiceId
-    payload.collectoId = collectoId;
-    payload.clientId = clientId;
+    const payload: any = {
+      paymentOption,
+      collectoId,
+      clientId,
+      reference,
+      amount
+    };
 
-    console.log("Buy points request:", payload);
+    if (vaultOTPToken) payload.vaultOTPToken = vaultOTPToken;
+    
+    // Normalize phone to 256 format
+    if (phone) {
+      payload.phone = phone.replace(/^0/, '256');
+    }
+
     try {
-      // Try to pay via Collecto
-      const paymentResponse = await axios.post(`${BASE_URL}/pay`, payload, {
+      console.log("Calling Collecto requestToPay API", payload);
+      const response = await axios.post(`${BASE_URL}/requestToPay`, payload, {
         headers: collectoHeaders(userToken),
       });
 
-      const paymentData = paymentResponse.data || paymentResponse;
-      const paymentAmount =
-        paymentData?.amount || paymentData?.invoice?.amount || Math.floor(Math.random() * 3000) + 500;
+      const collectoData = response.data;
+      
+      /**
+       * Based on your provided response:
+       * { status: '200', status_message: 'success', data: { transactionId: 'PMT154257', ... } }
+       */
+      const innerData = collectoData?.data || {};
+      const transactionId = innerData.transactionId || innerData.id || `TXN-${Date.now()}`;
 
-      // Determine an identifier for this payment (use Collecto-provided invoiceId or id, fall back to local synthetic id)
-      const paymentKey = paymentData?.invoiceId || paymentData?.id || `INV-LOCAL-${Date.now()}`;
-
-      // Process customer points based on confirmed payment
-      try {
-        await customerService.processInvoicePayment(collectoId, clientId, {
-          amount: paymentAmount,
-          invoiceId: paymentKey,
-          ruleId: undefined,
-        });
-      } catch (customerErr: any) {
-        console.warn("Customer point processing warning:", customerErr.message || customerErr);
-      }
-
-      // If there was a pending local record for this key, mark it confirmed
-      if (pendingPayments.has(paymentKey)) {
-        const rec = pendingPayments.get(paymentKey)!;
-        rec.status = "confirmed";
-        rec.payment = paymentData;
-        pendingPayments.set(paymentKey, rec);
-      }
-
-      const trxnId = paymentData?.id || paymentKey;
-
-      return res.json({
-        success: true,
-        status: "confirmed",
-        trxnId,
-        payment: { ...paymentData, invoiceId: paymentKey },
-        message: "Payment processed and customer points updated",
-      });
-    } catch (err: any) {
-      // Collecto unreachable or failing - generate a dummy successful payment but return pending status to caller
-      console.warn(
-        "Collecto payment API failed, storing dummy success but returning pending:",
-        err?.response?.data || err.message
-      );
-
-      const localInvoiceId = `INV-LOCAL-${Date.now()}`;
-      const dummy = getDummyPayment(localInvoiceId, 0);
-      const paymentAmount = dummy?.amount || Math.floor(Math.random() * 3000) + 500;
-
-      // Still process points locally so customer's points reflect the (simulated) successful payment
-      try {
-        await customerService.processInvoicePayment(collectoId, clientId, {
-          amount: paymentAmount,
-          invoiceId: localInvoiceId,
-          ruleId: undefined,
-        });
-      } catch (customerErr: any) {
-        console.warn("Customer point processing warning:", customerErr.message || customerErr);
-      }
-
-      // Store a local pending record so we can report status later
-      pendingPayments.set(localInvoiceId, {
-        payment: { ...dummy, amount: paymentAmount },
+      // Store in local memory/cache as "pending" so the /requestToPayStatus can find it later
+      pendingPayments.set(transactionId, {
         status: "pending",
+        payment: { 
+          transactionId, 
+          amount, 
+          collectoId, 
+          clientId 
+        },
         createdAt: new Date(),
       });
-  
+
+      // Return the specific format you requested
       return res.json({
-        success: true,
-        status: "pending",
-        trxnId: dummy.id,
-        payment: { id: dummy.id, invoiceId: localInvoiceId, amount: paymentAmount },
-        message: "Payment queued locally as pending; will confirm with Collecto later",
+        status: collectoData.status || '200',
+        status_message: collectoData.status_message || 'success',
+        data: {
+          requestToPay: true,
+          message: innerData.message || 'Confirm payment via the prompt on your phone.',
+          transactionId: transactionId
+        }
       });
+
+    } catch (err: any) {
+      console.warn("Collecto Request failed, falling back to local pending:", err.message);
+
+      const fallbackId = `PMT-LOCAL-${Date.now()}`;
       
+      // Save local fallback record
+      pendingPayments.set(fallbackId, {
+        status: "pending",
+        payment: { transactionId: fallbackId, amount, collectoId, clientId },
+        createdAt: new Date(),
+      });
+
+      return res.json({
+        status: '200',
+        status_message: 'success',
+        data: {
+          requestToPay: true,
+          message: 'Payment request initiated (Local Fallback). Please check your phone.',
+          transactionId: fallbackId
+        }
+      });
     }
   } catch (err: any) {
-    console.error(err?.response?.data || err.message);
-    return res.status(err?.response?.status || 500).json({
+    console.error("Critical BuyPoints Error:", err.message);
+    return res.status(500).json({
       message: "Buy points failed",
-      error: err?.response?.data || err.message,
+      error: err.message,
     });
   }
 });
-
-// Query payment/invoice status. Tries Collecto first; on failure, falls back to local pendingRecords store
-router.get("/invoice/status", async (req: Request, res: Response) => {
+// Query payment/invoice status via POST
+router.post("/requestToPayStatus", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    const invoiceId = (req.query.invoiceId as string) || (req.body && req.body.invoiceId);
-
+    // Extract transactionId specifically from the request body
+    const {vaultOTPToken,collectoId,clientId, transactionId } = req.body;
+    console.log("RequestToPayStatus for transactionId:", req.body);
+  
     if (!userToken) return res.status(401).send("Missing user token");
-    if (!invoiceId) return res.status(400).send("Missing invoiceId query param");
-
+    if (!transactionId) return res.status(400).send("Missing transactionId in body");
+    
     try {
-      const response = await axios.get(`${BASE_URL}/payments`, {
+      const response = await axios.post(`${BASE_URL}/requestToPayStatus`, req.body,{
         headers: collectoHeaders(userToken),
-        params: { invoiceId },
       });
 
+      console.log("Collecto payment status response:", response.data);
       const data = response.data;
       let payment: any = null;
 
+      // Logic to find the specific payment record in the response
       if (Array.isArray(data)) {
-        payment = data.find((p: any) => p.invoiceId === invoiceId || p.id === invoiceId) || data[0];
+        payment = data.find((p: any) => p.invoiceId === transactionId || p.id === transactionId) || data[0];
       } else if (data && Array.isArray(data.data)) {
-        payment = data.data.find((p: any) => p.invoiceId === invoiceId || p.id === invoiceId) || data.data[0];
+        payment = data.data.find((p: any) => p.invoiceId === transactionId || p.id === transactionId) || data.data[0];
       } else if (data && data.data) {
         payment = data.data;
       } else {
@@ -418,32 +406,51 @@ router.get("/invoice/status", async (req: Request, res: Response) => {
       }
 
       if (!payment) {
-        return res.json({ invoiceId, status: "unknown", message: "No payment found in Collecto" });
+        return res.json({ transactionId, status: "unknown", message: "No payment found in Collecto" });
       }
 
-      const statusFromCollecto = (payment.status || payment.paymentStatus || payment.invoiceStatus || (payment.invoice && payment.invoice.status) || "").toString().toLowerCase();
-      const isConfirmed = statusFromCollecto.includes("success") || statusFromCollecto.includes("paid") || statusFromCollecto.includes("confirmed");
+      // Normalize status string
+      const statusFromCollecto = (
+        payment.status || 
+        payment.paymentStatus || 
+        payment.invoiceStatus || 
+        (payment.invoice && payment.invoice.status) || 
+        ""
+      ).toString().toLowerCase();
+
+      const isConfirmed = ["success", "paid", "confirmed"].some(s => statusFromCollecto.includes(s));
 
       if (isConfirmed) {
-        if (pendingPayments.has(invoiceId)) {
-          const rec = pendingPayments.get(invoiceId)!;
+        if (pendingPayments.has(transactionId)) {
+          const rec = pendingPayments.get(transactionId)!;
           rec.status = "confirmed";
           rec.payment = payment;
-          pendingPayments.set(invoiceId, rec);
+          pendingPayments.set(transactionId, rec);
         }
-        return res.json({ invoiceId, status: "confirmed", payment });
+        return res.json({ transactionId, status: "confirmed", payment });
       }
 
-      return res.json({ invoiceId, status: "pending", payment });
+      return res.json({ transactionId, status: "pending", payment });
+
     } catch (err: any) {
       console.warn("Failed to query Collecto for payment status:", err?.response?.data || err.message);
 
-      const local = pendingPayments.get(invoiceId);
+      // Fallback to local store using transactionId as the key
+      const local = pendingPayments.get(transactionId);
       if (local) {
-        return res.json({ invoiceId, status: local.status, payment: local.payment, message: "Local record used - Collecto unreachable" });
+        return res.json({ 
+          transactionId, 
+          status: local.status, 
+          payment: local.payment, 
+          message: "Local record used - Collecto unreachable" 
+        });
       }
 
-      return res.status(503).json({ invoiceId, status: "unknown", message: "Collecto unreachable and no local record" });
+      return res.status(503).json({ 
+        transactionId, 
+        status: "unknown", 
+        message: "Collecto unreachable and no local record" 
+      });
     }
   } catch (err: any) {
     console.error(err?.response?.data || err.message);
@@ -453,23 +460,20 @@ router.get("/invoice/status", async (req: Request, res: Response) => {
     });
   }
 });
-
 // Verify phone number endpoint - accepts phoneNumber (or phone_number / phone) in body
 router.post("/verifyPhoneNumber", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    const { phoneNumber, phone_number, phone } = req.body;
-    const resolvedPhone = phoneNumber || phone_number || phone;
-
-    console.log("Phone verification request for number:", resolvedPhone);
+    const {vaultOTPToken, collectoId, clientId, phoneNumber} = req.body;
+    console.log("Phone verification request for number:", req.body);
    
     if (!userToken) return res.status(401).send("Missing user token");
-    if (!resolvedPhone) return res.status(400).send("Missing phoneNumber");
+    if (!phoneNumber) return res.status(400).send("Missing phoneNumber");
 
     try {
       const response = await axios.post(
         `${BASE_URL}/verifyPhoneNumber`,
-        { phone: resolvedPhone },
+        { vaultOTPToken,collectoId,clientId, phone: phoneNumber },
         { headers: collectoHeaders(userToken) }
       );
 
