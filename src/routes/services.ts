@@ -100,23 +100,41 @@ router.post("/services", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/invoices", async (req: Request, res: Response) => {
+router.post("/invoiceDetails", async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization;
     if (!token) return res.status(401).send("Missing user token");
 
-    // allow optional query filtering by clientId or collectoId
-    const { clientId, collectoId } = req.query;
+    // Extracting from req.body since this is a POST route
+    const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
 
-    const response = await axios.get(`${BASE_URL}/invoices`, {
+    // Construct params object dynamically
+    const params: any = {
+      vaultOTPToken,
+      clientId,
+      collectoId
+    };
+
+    // If invoiceId is provided, add it to the params to get specific details
+    if (invoiceId) {
+      params.invoiceId = invoiceId;
+    }
+
+    const response = await axios.get(`${BASE_URL}/invoiceDetails`, {
       headers: collectoHeaders(token),
-      params: clientId || collectoId ? { clientId, collectoId } : undefined,
+      params: params,
     });
 
+    /**
+     * The backend BASE_URL/invoiceDetails likely returns:
+     * 1. A single object if invoiceId was passed
+     * 2. An array of invoices if invoiceId was null/undefined
+     */
     return res.json(response.data);
+
   } catch (error: any) {
     console.error(
-      "Failed to fetch invoices",
+      "Failed to fetch invoice details",
       error?.response?.data || error.message
     );
     return res.status(error?.response?.status || 500).json({
@@ -273,7 +291,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/buyPoints", async (req: Request, res: Response) => {
+router.post("/requestToPay", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
 
