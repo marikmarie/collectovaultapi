@@ -42,8 +42,7 @@ const getDummyInvoice = (collectoId: string, clientId: string) => ({
   date: new Date(),
 });
 
-// In-memory store to track payments that were simulated locally when Collecto is unreachable.
-// Keyed by invoiceId. Each entry contains the simulated payment, a local status marker, and a timestamp.
+
 const pendingPayments: Map<
   string,
   { payment: any; status: "pending" | "confirmed" | "failed"; createdAt: Date }
