@@ -61,7 +61,6 @@ router.post("/authverify", async (req: Request, res: Response) => {
   }
 });
 
-// Optional middleware to protect routes
 export async function collectoAuthMiddleware(
   req: Request,
   res: Response,
@@ -90,24 +89,6 @@ export async function collectoAuthMiddleware(
   }
 }
 
-// ------------------ SERVICE & PAYMENT ROUTES ------------------
-
-// GET /services
-router.get("/services", collectoAuthMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userToken = req.headers.authorization;
-    const response = await axios.get(`${BASE_URL}/services`, {
-      headers: collectoHeaders(userToken),
-    });
-    return res.json(response.data);
-  } catch (err: any) {
-    console.error("[Collecto /services] ERROR", err?.response?.data || err.message);
-    return res.status(err?.response?.status || 500).json({
-      message: "Failed to fetch services",
-      error: err?.response?.data,
-    });
-  }
-});
 
 // POST /invoice (Pay Later)
 router.post("/invoice", collectoAuthMiddleware, async (req: Request, res: Response) => {
