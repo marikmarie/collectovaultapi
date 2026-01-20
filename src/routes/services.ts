@@ -106,14 +106,16 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
 
     // Extracting from req.body since this is a POST route
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
-
+    const staffId =0;
+    console.log(req.body);
     // Construct params object dynamically
     const params: any = {
       vaultOTPToken,
       clientId,
-      collectoId
+      collectoId,
+      staffId
     };
-
+   console.log(params)
     // If invoiceId is provided, add it to the params to get specific details
     if (invoiceId) {
       params.invoiceId = invoiceId;
@@ -124,11 +126,7 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
       params: params,
     });
 
-    /**
-     * The backend BASE_URL/invoiceDetails likely returns:
-     * 1. A single object if invoiceId was passed
-     * 2. An array of invoices if invoiceId was null/undefined
-     */
+   console.log(response.data);
     return res.json(response.data);
 
   } catch (error: any) {
@@ -175,6 +173,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
 
     let collectoId: string | undefined;
     let clientId: string | undefined;
+    let staffId: string | 0;
     let forwardItems: any[] = [];
 
     if (isNewShape) {
@@ -189,6 +188,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
 
       collectoId = String(items[0].collectoId);
       clientId = String(items[0].clientId);
+      staffId =0;
 
       if (!collectoId) return res.status(400).send("collectoId is required");
       if (!clientId)
@@ -225,6 +225,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
           );
 
       // collectoId and clientId should be provided at the top-level (fallback)
+      staffId =0;
       collectoId = req.body.collectoId;
       clientId = req.body.clientId;
       if (!collectoId) return res.status(400).send("collectoId is required");
@@ -271,14 +272,16 @@ router.post("/invoice", async (req: Request, res: Response) => {
       amount: Number(finalAmount),
       collectoId,
       clientId,
+      staffId,
     };
 
+    console.log(payload);
     // Forward to Collecto createInvoice
     const response = await axios.post(`${BASE_URL}/createInvoice`, payload, {
       headers: collectoHeaders(userToken),
     });
 
-    console.log("Invoice created:", response.data);
+    console.log("Invoice Response:", response.data);
 
     return res.json(response.data);
   } catch (err: any) {
