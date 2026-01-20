@@ -107,7 +107,7 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     // Extracting from req.body since this is a POST route
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
     const staffId =0;
-    console.log(req.body);
+    console.log(invoiceId);
     // Construct params object dynamically
     const params: any = {
       vaultOTPToken,
