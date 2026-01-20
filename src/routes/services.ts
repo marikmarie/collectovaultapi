@@ -104,28 +104,28 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     const token = req.headers.authorization;
     if (!token) return res.status(401).send("Missing user token");
 
-    // Extracting from req.body since this is a POST route
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
-    const staffId =0;
-    console.log(invoiceId);
-    // Construct params object dynamically
+   // const staffId =0;
+    //console.log(invoiceId);
     const params: any = {
       vaultOTPToken,
       clientId,
       collectoId,
-      staffId
+      invoiceId,
+    //  staffId
     };
    console.log(params)
     // If invoiceId is provided, add it to the params to get specific details
-    if (invoiceId) {
-      params.invoiceId = invoiceId;
-    }
+    // if (invoiceId) {
+    //   params.invoiceId = invoiceId;
+    // }
 
     const response = await axios.get(`${BASE_URL}/invoiceDetails`, {
       headers: collectoHeaders(token),
       params: params,
     });
 
+    console.log(BASE_URL)
    console.log(response.data);
     return res.json(response.data);
 
