@@ -107,6 +107,7 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
    // const staffId =0;
     //console.log(invoiceId);
+
     const params: any = {
       vaultOTPToken,
       clientId,
