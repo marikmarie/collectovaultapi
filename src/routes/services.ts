@@ -64,12 +64,12 @@ function collectoHeaders(userToken?: string) {
 
 router.post("/services", async (req: Request, res: Response) => {
   try {
-    const { collectoId, page } = req.body;
+    const {vaultOTPToken, collectoId, page } = req.body;
     const token = req.headers.authorization as string | undefined;
     const pageNumber = typeof page === "number" ? page : parseInt(page) || 1;
     //console.log("Collecto ID:", collectoId);
 
-    if (!collectoId) {
+    if (!collectoId && !vaultOTPToken) {
       return res
         .status(400)
         .json({ message: "collectoId is required in the request body" });
@@ -77,13 +77,13 @@ router.post("/services", async (req: Request, res: Response) => {
 
     console.log(
       "Fetching services for collectoId:",
-      collectoId,
+      collectoId,vaultOTPToken,
       "page:",
       pageNumber
     );
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`,
-      { collectoId, page: pageNumber },
+      { vaultOTPToken,collectoId, page: pageNumber },
       {
         headers: collectoHeaders(token),
       }
