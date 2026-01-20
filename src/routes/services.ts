@@ -119,12 +119,13 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     // if (invoiceId) {
     //   params.invoiceId = invoiceId;
     // }
-
-    const response = await axios.get(`${BASE_URL}/invoiceDetails`, {
-      headers: collectoHeaders(token),
-      params: params,
-    });
-
+    const response = await axios.post(
+      `${BASE_URL}/invoiceDetails`,
+      params,
+      {
+        headers: collectoHeaders(token),
+      }
+    );
     console.log(BASE_URL)
    console.log(response.data);
     return res.json(response.data);
