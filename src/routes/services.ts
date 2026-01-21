@@ -5,6 +5,8 @@ import { CustomerService } from "../services/customer.service";
 import { CustomerRepository } from "../repositories/customer.repository";
 import { TierRepository } from "../repositories/tier.repository";
 import { EarningRuleRepository } from "../repositories/earning-rule.repository";
+import { BuyPointsTransactionService } from "../services/buy-points-transaction.service";
+import { BuyPointsTransactionRepository } from "../repositories/buy-points-transaction.repository";
 
 dotenv.config();
 
@@ -18,6 +20,15 @@ const customerRepository = new CustomerRepository();
 const tierRepository = new TierRepository();
 const earningRuleRepository = new EarningRuleRepository();
 const customerService = new CustomerService(
+  customerRepository,
+  tierRepository,
+  earningRuleRepository,
+);
+
+// Initialize buy points transaction service
+const buyPointsTransactionRepository = new BuyPointsTransactionRepository();
+const buyPointsTransactionService = new BuyPointsTransactionService(
+  buyPointsTransactionRepository,
   customerRepository,
   tierRepository,
   earningRuleRepository,
@@ -143,12 +154,23 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       phone,
       amount,
       reference,
+      staffId,
+      staffName,
+      points,
     } = req.body;
 
     if (!userToken) return res.status(401).send("Missing user token");
     if (!paymentOption) return res.status(400).send("Missing payment method");
     if (!collectoId || !clientId)
       return res.status(400).send("Missing collectoId or clientId");
+
+    // Check if this is a BUYPOINTS transaction
+    const isBuyPointsTransaction = reference && reference.toUpperCase().includes("BUYPOINTS");
+
+    // If it's a buypoints transaction, validate additional parameters
+    if (isBuyPointsTransaction && !points) {
+      return res.status(400).send("Missing points for BUYPOINTS transaction");
+    }
 
     const payload: any = {
       paymentOption,
@@ -189,9 +211,38 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
           amount,
           collectoId,
           clientId,
+          reference,
+          isBuyPoints: isBuyPointsTransaction,
+          points,
         },
         createdAt: new Date(),
       });
+
+      // If it's a BUYPOINTS transaction, store in database as pending
+      if (isBuyPointsTransaction) {
+        try {
+          const customer = await customerRepository.findByClientId(clientId, collectoId);
+          if (customer) {
+            const transactionRecord = await buyPointsTransactionService.createTransaction({
+              customerId: customer.id,
+              collectoId,
+              clientId,
+              transactionId,
+              referenceId: reference,
+              points,
+              amount,
+              paymentMethod: paymentOption,
+              staffId,
+              staffName,
+            });
+
+            console.log("BUYPOINTS transaction created:", transactionRecord);
+          }
+        } catch (dbError: any) {
+          console.error("Failed to store BUYPOINTS transaction:", dbError.message);
+          // Continue with the response even if DB storage fails
+        }
+      }
 
       // Return the specific format you requested
       return res.json({
@@ -216,9 +267,42 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       // Save local fallback record
       pendingPayments.set(fallbackId, {
         status: "pending",
-        payment: { transactionId: fallbackId, amount, collectoId, clientId },
+        payment: {
+          transactionId: fallbackId,
+          amount,
+          collectoId,
+          clientId,
+          reference,
+          isBuyPoints: isBuyPointsTransaction,
+          points,
+        },
         createdAt: new Date(),
       });
+
+      // If it's a BUYPOINTS transaction, store in database as pending (fallback)
+      if (isBuyPointsTransaction) {
+        try {
+          const customer = await customerRepository.findByClientId(clientId, collectoId);
+          if (customer) {
+            const transactionRecord = await buyPointsTransactionService.createTransaction({
+              customerId: customer.id,
+              collectoId,
+              clientId,
+              transactionId: fallbackId,
+              referenceId: reference,
+              points,
+              amount,
+              paymentMethod: paymentOption,
+              staffId,
+              staffName,
+            });
+
+            console.log("BUYPOINTS transaction created (fallback):", transactionRecord);
+          }
+        } catch (dbError: any) {
+          console.error("Failed to store BUYPOINTS transaction (fallback):", dbError.message);
+        }
+      }
 
       return res.json({
         status: "200",
@@ -244,7 +328,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
     // Extract transactionId specifically from the request body
-    const { vaultOTPToken, collectoId, clientId, transactionId } = req.body;
+    const { vaultOTPToken, collectoId, clientId, transactionId, staffId, staffName } = req.body;
     console.log("RequestToPayStatus for transactionId:", req.body);
 
     if (!userToken) return res.status(401).send("Missing user token");
@@ -310,6 +394,34 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
           rec.status = "confirmed";
           rec.payment = payment;
           pendingPayments.set(transactionId, rec);
+
+          // If it's a BUYPOINTS transaction, confirm it in the database
+          if (rec.payment.isBuyPoints) {
+            try {
+              const result = await buyPointsTransactionService.confirmTransaction(
+                transactionId,
+                staffId,
+                staffName
+              );
+              console.log("BUYPOINTS transaction confirmed:", result);
+
+              return res.json({
+                transactionId,
+                status: "confirmed",
+                payment,
+                buyPointsResult: result.message,
+              });
+            } catch (dbError: any) {
+              console.error("Failed to confirm BUYPOINTS transaction:", dbError.message);
+              // Still return success but notify of DB issue
+              return res.json({
+                transactionId,
+                status: "confirmed",
+                payment,
+                warning: "Transaction confirmed but failed to update points in database",
+              });
+            }
+          }
         }
         return res.json({ transactionId, status: "confirmed", payment });
       }
@@ -324,6 +436,28 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
       // Fallback to local store using transactionId as the key
       const local = pendingPayments.get(transactionId);
       if (local) {
+        // If it was a BUYPOINTS transaction and we're checking its status, try to confirm if failed before
+        if (local.payment.isBuyPoints && local.status === "pending") {
+          try {
+            const result = await buyPointsTransactionService.confirmTransaction(
+              transactionId,
+              staffId,
+              staffName
+            );
+            console.log("BUYPOINTS transaction confirmed (local):", result);
+
+            return res.json({
+              transactionId,
+              status: "confirmed",
+              payment: local.payment,
+              message: "Local confirmation used - Collecto unreachable",
+              buyPointsResult: result.message,
+            });
+          } catch (dbError: any) {
+            console.error("Failed to confirm BUYPOINTS transaction (local):", dbError.message);
+          }
+        }
+
         return res.json({
           transactionId,
           status: local.status,
