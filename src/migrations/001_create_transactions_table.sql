@@ -4,14 +4,11 @@ CREATE TABLE IF NOT EXISTS vault_transactions (
   customer_id INT NOT NULL,
   collecto_id VARCHAR(100) NOT NULL,
   client_id VARCHAR(100) NOT NULL,
-  staff_id INT,
   transaction_id VARCHAR(100) UNIQUE NOT NULL,
   reference VARCHAR(255),
-  type ENUM('BUYPOINTS', 'EARNED', 'REDEEMED') NOT NULL DEFAULT 'BUYPOINTS',
   amount DECIMAL(15, 2) NOT NULL,
   points INT NOT NULL,
   payment_method VARCHAR(100),
-  status ENUM('PENDING', 'CONFIRMED', 'FAILED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
   payment_status VARCHAR(100),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -21,7 +18,5 @@ CREATE TABLE IF NOT EXISTS vault_transactions (
   INDEX idx_collecto_id (collecto_id),
   INDEX idx_client_id (client_id),
   INDEX idx_transaction_id (transaction_id),
-  INDEX idx_status (status),
-  INDEX idx_type (type),
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

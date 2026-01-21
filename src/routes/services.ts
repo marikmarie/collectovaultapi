@@ -248,7 +248,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
     // Extract transactionId specifically from the request body
-    const { vaultOTPToken, collectoId, clientId, transactionId, reference, amount, staffId } = req.body;
+    const { vaultOTPToken, collectoId, clientId, transactionId, reference, amount } = req.body;
     console.log("RequestToPayStatus for transactionId:", req.body);
 
     if (!userToken) return res.status(401).send("Missing user token");
@@ -332,24 +332,21 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
               clientId,
               transactionId,
               reference,
-              'BUYPOINTS',
               amount || 0,
               pointsToAdd,
               payment.paymentMethod || payment.method || null,
-              statusFromCollecto,
-              staffId || null
+              statusFromCollecto
             );
           } else {
-            // Update existing transaction status
-            transaction = await transactionRepository.updateStatus(
+            // Update existing transaction payment status
+            transaction = await transactionRepository.updatePaymentStatus(
               transaction.id,
-              isConfirmed ? 'CONFIRMED' : 'PENDING',
               statusFromCollecto
             );
           }
 
           // If transaction is confirmed, update customer points
-          if (isConfirmed && transaction.status === 'CONFIRMED') {
+          if (isConfirmed) {
             customer.addBoughtPoints(transaction.points);
             await customerRepository.update(customer.id, {
               boughtPoints: customer.boughtPoints,
@@ -381,9 +378,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
             payment,
             transaction: {
               id: transaction.id,
-              status: transaction.status,
-              points: transaction.points,
-              type: transaction.type
+              points: transaction.points
             }
           });
         } catch (txnErr: any) {
@@ -532,8 +527,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
       items: forwardItems,
       amount: finalAmount,
       collectoId: String(collectoId),
-      clientId: String(clientId),
-      staffId: 0,
+      clientId: String(clientId)
     };
 
     const response = await axios.post(`${BASE_URL}/createInvoice`, payload, {
@@ -587,16 +581,6 @@ router.get("/transactions", async (req: Request, res: Response) => {
       );
     }
 
-    // Filter by type if provided
-    if (type && transactions.length > 0) {
-      transactions = transactions.filter(t => t.type === type);
-    }
-
-    // Filter by status if provided
-    if (status && transactions.length > 0) {
-      transactions = transactions.filter(t => t.status === status);
-    }
-
     return res.json({
       success: true,
       total: transactions.length,
@@ -606,14 +590,11 @@ router.get("/transactions", async (req: Request, res: Response) => {
         id: t.id,
         customerId: t.customerId,
         transactionId: t.transactionId,
-        type: t.type,
         amount: t.amount,
         points: t.points,
-        status: t.status,
         paymentStatus: t.paymentStatus,
         paymentMethod: t.paymentMethod,
         reference: t.reference,
-        staffId: t.staffId,
         createdAt: t.createdAt,
         confirmedAt: t.confirmedAt
       }))
@@ -630,7 +611,7 @@ router.get("/transactions", async (req: Request, res: Response) => {
 // Query transactions by customer (POST)
 router.post("/transactions/customer", async (req: Request, res: Response) => {
   try {
-    const { customerId, type, status, limit, offset } = req.body;
+    const { customerId, limit, offset } = req.body;
     const pageLimit = Math.min(Number(limit) || 50, 100);
     const pageOffset = Number(offset) || 0;
 
@@ -646,16 +627,6 @@ router.post("/transactions/customer", async (req: Request, res: Response) => {
       pageOffset
     );
 
-    // Filter by type if provided
-    if (type) {
-      transactions = transactions.filter(t => t.type === type);
-    }
-
-    // Filter by status if provided
-    if (status) {
-      transactions = transactions.filter(t => t.status === status);
-    }
-
     return res.json({
       success: true,
       customerId,
@@ -665,14 +636,11 @@ router.post("/transactions/customer", async (req: Request, res: Response) => {
       transactions: transactions.map(t => ({
         id: t.id,
         transactionId: t.transactionId,
-        type: t.type,
         amount: t.amount,
         points: t.points,
-        status: t.status,
         paymentStatus: t.paymentStatus,
         paymentMethod: t.paymentMethod,
         reference: t.reference,
-        staffId: t.staffId,
         createdAt: t.createdAt,
         confirmedAt: t.confirmedAt
       }))
@@ -713,14 +681,11 @@ router.get("/transactions/:transactionId", async (req: Request, res: Response) =
         collectoId: transaction.collectoId,
         clientId: transaction.clientId,
         transactionId: transaction.transactionId,
-        type: transaction.type,
         amount: transaction.amount,
         points: transaction.points,
-        status: transaction.status,
         paymentStatus: transaction.paymentStatus,
         paymentMethod: transaction.paymentMethod,
         reference: transaction.reference,
-        staffId: transaction.staffId,
         createdAt: transaction.createdAt,
         updatedAt: transaction.updatedAt,
         confirmedAt: transaction.confirmedAt
