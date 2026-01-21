@@ -6,7 +6,6 @@ import collectoRouter from "./routes/authCollecto";
 import tierRouter from "./routes/tier.routes";
 import vaultPackageRouter from "./routes/vault-package.routes";
 import earningRuleRouter from "./routes/earning-rule.routes";
-import buyPointsTransactionRouter from "./routes/buy-points-transaction.routes";
 import { CustomerRoutes } from "./routes/customer.routes";
 
 dotenv.config();
@@ -21,7 +20,6 @@ app.use("/tier", tierRouter);
 app.use("/vaultPackages", vaultPackageRouter);
 app.use("/pointRules", earningRuleRouter);
 app.use("/customers", CustomerRoutes());
-app.use("/buy-points-transactions", buyPointsTransactionRouter);
 
 app.get("/", (_, res) => {
   res.send("CollectoVault API proxy running");

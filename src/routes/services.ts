@@ -5,8 +5,7 @@ import { CustomerService } from "../services/customer.service";
 import { CustomerRepository } from "../repositories/customer.repository";
 import { TierRepository } from "../repositories/tier.repository";
 import { EarningRuleRepository } from "../repositories/earning-rule.repository";
-import { BuyPointsTransactionService } from "../services/buy-points-transaction.service";
-import { BuyPointsTransactionRepository } from "../repositories/buy-points-transaction.repository";
+import { TransactionRepository } from "../repositories/transaction.repository";
 
 dotenv.config();
 
@@ -15,20 +14,14 @@ const router = Router();
 const BASE_URL = process.env.COLLECTO_BASE_URL;
 const API_KEY = process.env.COLLECTO_API_KEY;
 
-// Initialize customer service for point calculations
+// Initialize repositories
 const customerRepository = new CustomerRepository();
 const tierRepository = new TierRepository();
 const earningRuleRepository = new EarningRuleRepository();
-const customerService = new CustomerService(
-  customerRepository,
-  tierRepository,
-  earningRuleRepository,
-);
+const transactionRepository = new TransactionRepository();
 
-// Initialize buy points transaction service
-const buyPointsTransactionRepository = new BuyPointsTransactionRepository();
-const buyPointsTransactionService = new BuyPointsTransactionService(
-  buyPointsTransactionRepository,
+// Initialize customer service for point calculations
+const customerService = new CustomerService(
   customerRepository,
   tierRepository,
   earningRuleRepository,
@@ -154,23 +147,12 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       phone,
       amount,
       reference,
-      staffId,
-      staffName,
-      points,
     } = req.body;
 
     if (!userToken) return res.status(401).send("Missing user token");
     if (!paymentOption) return res.status(400).send("Missing payment method");
     if (!collectoId || !clientId)
       return res.status(400).send("Missing collectoId or clientId");
-
-    // Check if this is a BUYPOINTS transaction
-    const isBuyPointsTransaction = reference && reference.toUpperCase().includes("BUYPOINTS");
-
-    // If it's a buypoints transaction, validate additional parameters
-    if (isBuyPointsTransaction && !points) {
-      return res.status(400).send("Missing points for BUYPOINTS transaction");
-    }
 
     const payload: any = {
       paymentOption,
@@ -211,38 +193,9 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
           amount,
           collectoId,
           clientId,
-          reference,
-          isBuyPoints: isBuyPointsTransaction,
-          points,
         },
         createdAt: new Date(),
       });
-
-      // If it's a BUYPOINTS transaction, store in database as pending
-      if (isBuyPointsTransaction) {
-        try {
-          const customer = await customerRepository.findByClientId(clientId, collectoId);
-          if (customer) {
-            const transactionRecord = await buyPointsTransactionService.createTransaction({
-              customerId: customer.id,
-              collectoId,
-              clientId,
-              transactionId,
-              referenceId: reference,
-              points,
-              amount,
-              paymentMethod: paymentOption,
-              staffId,
-              staffName,
-            });
-
-            console.log("BUYPOINTS transaction created:", transactionRecord);
-          }
-        } catch (dbError: any) {
-          console.error("Failed to store BUYPOINTS transaction:", dbError.message);
-          // Continue with the response even if DB storage fails
-        }
-      }
 
       // Return the specific format you requested
       return res.json({
@@ -267,42 +220,9 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       // Save local fallback record
       pendingPayments.set(fallbackId, {
         status: "pending",
-        payment: {
-          transactionId: fallbackId,
-          amount,
-          collectoId,
-          clientId,
-          reference,
-          isBuyPoints: isBuyPointsTransaction,
-          points,
-        },
+        payment: { transactionId: fallbackId, amount, collectoId, clientId },
         createdAt: new Date(),
       });
-
-      // If it's a BUYPOINTS transaction, store in database as pending (fallback)
-      if (isBuyPointsTransaction) {
-        try {
-          const customer = await customerRepository.findByClientId(clientId, collectoId);
-          if (customer) {
-            const transactionRecord = await buyPointsTransactionService.createTransaction({
-              customerId: customer.id,
-              collectoId,
-              clientId,
-              transactionId: fallbackId,
-              referenceId: reference,
-              points,
-              amount,
-              paymentMethod: paymentOption,
-              staffId,
-              staffName,
-            });
-
-            console.log("BUYPOINTS transaction created (fallback):", transactionRecord);
-          }
-        } catch (dbError: any) {
-          console.error("Failed to store BUYPOINTS transaction (fallback):", dbError.message);
-        }
-      }
 
       return res.json({
         status: "200",
@@ -328,7 +248,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
     // Extract transactionId specifically from the request body
-    const { vaultOTPToken, collectoId, clientId, transactionId, staffId, staffName } = req.body;
+    const { vaultOTPToken, collectoId, clientId, transactionId, reference, amount, staffId } = req.body;
     console.log("RequestToPayStatus for transactionId:", req.body);
 
     if (!userToken) return res.status(401).send("Missing user token");
@@ -388,40 +308,103 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
         statusFromCollecto.includes(s),
       );
 
+      // Handle BUYPOINTS transactions
+      if (reference && reference.includes("BUYPOINTS")) {
+        try {
+          // Get or create customer
+          const customer = await customerService.getOrCreateCustomer(
+            collectoId,
+            clientId,
+            clientId
+          );
+
+          // Check if transaction already exists
+          let transaction = await transactionRepository.findByTransactionId(transactionId);
+
+          if (!transaction) {
+            // Calculate points from amount (e.g., 1 point per currency unit)
+            const pointsToAdd = Math.floor(amount || 0);
+
+            // Create new transaction
+            transaction = await transactionRepository.create(
+              customer.id,
+              collectoId,
+              clientId,
+              transactionId,
+              reference,
+              'BUYPOINTS',
+              amount || 0,
+              pointsToAdd,
+              payment.paymentMethod || payment.method || null,
+              statusFromCollecto,
+              staffId || null
+            );
+          } else {
+            // Update existing transaction status
+            transaction = await transactionRepository.updateStatus(
+              transaction.id,
+              isConfirmed ? 'CONFIRMED' : 'PENDING',
+              statusFromCollecto
+            );
+          }
+
+          // If transaction is confirmed, update customer points
+          if (isConfirmed && transaction.status === 'CONFIRMED') {
+            customer.addBoughtPoints(transaction.points);
+            await customerRepository.update(customer.id, {
+              boughtPoints: customer.boughtPoints,
+              currentPoints: customer.currentPoints
+            });
+
+            // Determine tier based on current points
+            const tier = await tierRepository.findTierForPoints(customer.currentPoints);
+            if (tier && customer.currentTierId !== tier.id) {
+              customer.currentTierId = tier.id;
+              await customerRepository.update(customer.id, {
+                currentTierId: tier.id
+              });
+            }
+
+            console.log(`Buy Points Transaction Confirmed: Customer ${customer.id} received ${transaction.points} points`);
+          }
+
+          if (pendingPayments.has(transactionId)) {
+            const rec = pendingPayments.get(transactionId)!;
+            rec.status = isConfirmed ? "confirmed" : "pending";
+            rec.payment = payment;
+            pendingPayments.set(transactionId, rec);
+          }
+
+          return res.json({
+            transactionId,
+            status: isConfirmed ? "confirmed" : "pending",
+            payment,
+            transaction: {
+              id: transaction.id,
+              status: transaction.status,
+              points: transaction.points,
+              type: transaction.type
+            }
+          });
+        } catch (txnErr: any) {
+          console.error("Error processing BUYPOINTS transaction:", txnErr.message);
+          // Still return payment status even if transaction storage fails
+          return res.json({
+            transactionId,
+            status: isConfirmed ? "confirmed" : "pending",
+            payment,
+            error: "Transaction storage failed but payment processed"
+          });
+        }
+      }
+
+      // Non-BUYPOINTS transactions
       if (isConfirmed) {
         if (pendingPayments.has(transactionId)) {
           const rec = pendingPayments.get(transactionId)!;
           rec.status = "confirmed";
           rec.payment = payment;
           pendingPayments.set(transactionId, rec);
-
-          // If it's a BUYPOINTS transaction, confirm it in the database
-          if (rec.payment.isBuyPoints) {
-            try {
-              const result = await buyPointsTransactionService.confirmTransaction(
-                transactionId,
-                staffId,
-                staffName
-              );
-              console.log("BUYPOINTS transaction confirmed:", result);
-
-              return res.json({
-                transactionId,
-                status: "confirmed",
-                payment,
-                buyPointsResult: result.message,
-              });
-            } catch (dbError: any) {
-              console.error("Failed to confirm BUYPOINTS transaction:", dbError.message);
-              // Still return success but notify of DB issue
-              return res.json({
-                transactionId,
-                status: "confirmed",
-                payment,
-                warning: "Transaction confirmed but failed to update points in database",
-              });
-            }
-          }
         }
         return res.json({ transactionId, status: "confirmed", payment });
       }
@@ -436,28 +419,6 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
       // Fallback to local store using transactionId as the key
       const local = pendingPayments.get(transactionId);
       if (local) {
-        // If it was a BUYPOINTS transaction and we're checking its status, try to confirm if failed before
-        if (local.payment.isBuyPoints && local.status === "pending") {
-          try {
-            const result = await buyPointsTransactionService.confirmTransaction(
-              transactionId,
-              staffId,
-              staffName
-            );
-            console.log("BUYPOINTS transaction confirmed (local):", result);
-
-            return res.json({
-              transactionId,
-              status: "confirmed",
-              payment: local.payment,
-              message: "Local confirmation used - Collecto unreachable",
-              buyPointsResult: result.message,
-            });
-          } catch (dbError: any) {
-            console.error("Failed to confirm BUYPOINTS transaction (local):", dbError.message);
-          }
-        }
-
         return res.json({
           transactionId,
           status: local.status,
@@ -589,4 +550,189 @@ router.post("/invoice", async (req: Request, res: Response) => {
       .json({ message: "Invoice creation failed", error: data });
   }
 });
+
+// Query transactions endpoint
+router.get("/transactions", async (req: Request, res: Response) => {
+  try {
+    const { collectoId, clientId, customerId, type, status, limit, offset } = req.query;
+    const pageLimit = Math.min(Number(limit) || 50, 100);
+    const pageOffset = Number(offset) || 0;
+
+    if (!collectoId && !clientId && !customerId) {
+      return res.status(400).json({
+        message: "At least one of collectoId, clientId, or customerId is required"
+      });
+    }
+
+    let transactions: any[] = [];
+
+    if (customerId) {
+      transactions = await transactionRepository.findByCustomerId(
+        Number(customerId),
+        pageLimit,
+        pageOffset
+      );
+    } else if (clientId && collectoId) {
+      transactions = await transactionRepository.findByCollectoIdAndClientId(
+        String(collectoId),
+        String(clientId),
+        pageLimit,
+        pageOffset
+      );
+    } else if (collectoId) {
+      transactions = await transactionRepository.findByCollectoId(
+        String(collectoId),
+        pageLimit,
+        pageOffset
+      );
+    }
+
+    // Filter by type if provided
+    if (type && transactions.length > 0) {
+      transactions = transactions.filter(t => t.type === type);
+    }
+
+    // Filter by status if provided
+    if (status && transactions.length > 0) {
+      transactions = transactions.filter(t => t.status === status);
+    }
+
+    return res.json({
+      success: true,
+      total: transactions.length,
+      limit: pageLimit,
+      offset: pageOffset,
+      transactions: transactions.map(t => ({
+        id: t.id,
+        customerId: t.customerId,
+        transactionId: t.transactionId,
+        type: t.type,
+        amount: t.amount,
+        points: t.points,
+        status: t.status,
+        paymentStatus: t.paymentStatus,
+        paymentMethod: t.paymentMethod,
+        reference: t.reference,
+        staffId: t.staffId,
+        createdAt: t.createdAt,
+        confirmedAt: t.confirmedAt
+      }))
+    });
+  } catch (err: any) {
+    console.error("Transactions Query Error:", err.message);
+    return res.status(500).json({
+      message: "Failed to fetch transactions",
+      error: err.message
+    });
+  }
+});
+
+// Query transactions by customer (POST)
+router.post("/transactions/customer", async (req: Request, res: Response) => {
+  try {
+    const { customerId, type, status, limit, offset } = req.body;
+    const pageLimit = Math.min(Number(limit) || 50, 100);
+    const pageOffset = Number(offset) || 0;
+
+    if (!customerId) {
+      return res.status(400).json({
+        message: "customerId is required"
+      });
+    }
+
+    let transactions = await transactionRepository.findByCustomerId(
+      Number(customerId),
+      pageLimit,
+      pageOffset
+    );
+
+    // Filter by type if provided
+    if (type) {
+      transactions = transactions.filter(t => t.type === type);
+    }
+
+    // Filter by status if provided
+    if (status) {
+      transactions = transactions.filter(t => t.status === status);
+    }
+
+    return res.json({
+      success: true,
+      customerId,
+      total: transactions.length,
+      limit: pageLimit,
+      offset: pageOffset,
+      transactions: transactions.map(t => ({
+        id: t.id,
+        transactionId: t.transactionId,
+        type: t.type,
+        amount: t.amount,
+        points: t.points,
+        status: t.status,
+        paymentStatus: t.paymentStatus,
+        paymentMethod: t.paymentMethod,
+        reference: t.reference,
+        staffId: t.staffId,
+        createdAt: t.createdAt,
+        confirmedAt: t.confirmedAt
+      }))
+    });
+  } catch (err: any) {
+    console.error("Transactions Customer Query Error:", err.message);
+    return res.status(500).json({
+      message: "Failed to fetch customer transactions",
+      error: err.message
+    });
+  }
+});
+
+// Query single transaction
+router.get("/transactions/:transactionId", async (req: Request, res: Response) => {
+  try {
+    const { transactionId } = req.params;
+
+    if (!transactionId) {
+      return res.status(400).json({
+        message: "transactionId is required"
+      });
+    }
+
+    const transaction = await transactionRepository.findByTransactionId(transactionId);
+
+    if (!transaction) {
+      return res.status(404).json({
+        message: "Transaction not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      transaction: {
+        id: transaction.id,
+        customerId: transaction.customerId,
+        collectoId: transaction.collectoId,
+        clientId: transaction.clientId,
+        transactionId: transaction.transactionId,
+        type: transaction.type,
+        amount: transaction.amount,
+        points: transaction.points,
+        status: transaction.status,
+        paymentStatus: transaction.paymentStatus,
+        paymentMethod: transaction.paymentMethod,
+        reference: transaction.reference,
+        staffId: transaction.staffId,
+        createdAt: transaction.createdAt,
+        updatedAt: transaction.updatedAt,
+        confirmedAt: transaction.confirmedAt
+      }
+    });
+  } catch (err: any) {
+    console.error("Transaction Query Error:", err.message);
+    return res.status(500).json({
+      message: "Failed to fetch transaction",
+      error: err.message
+    });
+  }
+});
+
 export default router;

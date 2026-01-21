@@ -151,4 +151,15 @@ export class TierRepository {
 
     return this.findById(id);
   }
+
+  /**
+   * Returns the tier for the given points.
+   * Finds the highest tier whose points_required <= points.
+   */
+  async findTierForPoints(points: number, collectoId?: string) {
+    const tiers = await this.findAll(false, collectoId); // Use findAll to get all active tiers
+    // Sort tiers descending by points_required
+    const sorted = tiers.sort((a, b) => b.pointsRequired - a.pointsRequired);
+    return sorted.find((tier) => points >= tier.pointsRequired) || null;
+  }
 }
