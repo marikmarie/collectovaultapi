@@ -265,18 +265,35 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
 router.post("/requestToPayStatus", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    // Extract transactionId specifically from the request body
-    const { vaultOTPToken, collectoId, clientId, transactionId, reference } = req.body;
-    console.log("RequestToPayStatus for transactionId:", req.body);
+    const { vaultOTPToken, collectoId, clientId, transactionId } = req.body;
+    console.log("RequestToPayStatus for transactionId:", transactionId);
 
     if (!userToken) return res.status(401).send("Missing user token");
     if (!transactionId)
       return res.status(400).send("Missing transactionId in body");
 
+    // Check if this is a BUYPOINTS transaction by searching in the transactions table
+    let isBuyPoints = false;
+    let dbTransaction: any = null;
     try {
+      dbTransaction = await transactionRepository.findByTransactionId(transactionId);
+      isBuyPoints = !!dbTransaction;
+    } catch (err: any) {
+      console.log("Transaction not found in DB, proceeding as regular payment");
+    }
+
+    try {
+      // Prepare payload without reference
+      const payload: any = {
+        vaultOTPToken,
+        collectoId,
+        clientId,
+        transactionId,
+      };
+
       const response = await axios.post(
         `${BASE_URL}/requestToPayStatus`,
-        req.body,
+        payload,
         {
           headers: collectoHeaders(userToken),
         },
@@ -284,34 +301,9 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
 
       console.log("Collecto payment status response:", response.data);
       const data = response.data;
-      let payment: any = null;
+      let payment: any = data;
 
-      // Logic to find the specific payment record in the response
-      if (Array.isArray(data)) {
-        payment =
-          data.find(
-            (p: any) => p.invoiceId === transactionId || p.id === transactionId,
-          ) || data[0];
-      } else if (data && Array.isArray(data.data)) {
-        payment =
-          data.data.find(
-            (p: any) => p.invoiceId === transactionId || p.id === transactionId,
-          ) || data.data[0];
-      } else if (data && data.data) {
-        payment = data.data;
-      } else {
-        payment = data;
-      }
-
-      if (!payment) {
-        return res.json({
-          transactionId,
-          status: "unknown",
-          message: "No payment found in Collecto",
-        });
-      }
-
-      // Normalize status string
+      // Extract status from payment
       const statusFromCollecto = (
         payment.status ||
         payment.paymentStatus ||
@@ -327,91 +319,68 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
       );
 
       // Handle BUYPOINTS transactions
-      if (reference && reference.includes("BUYPOINTS")) {
+      if (isBuyPoints && dbTransaction) {
         try {
-          let transaction = await transactionRepository.findByTransactionId(transactionId);
-          if (transaction) {
-            // Update existing transaction payment status
-            transaction = await transactionRepository.updatePaymentStatus(
-              transaction.id,
-              statusFromCollecto
+          // Update transaction payment status
+          await transactionRepository.updatePaymentStatus(
+            dbTransaction.id,
+            statusFromCollecto
+          );
+
+          // If payment is confirmed, update customer points
+          if (isConfirmed) {
+            const customer = await customerService.getOrCreateCustomer(
+              collectoId,
+              clientId,
+              clientId
             );
 
-            // If transaction is confirmed, update customer points
-            if (isConfirmed) {
-              const customer = await customerService.getOrCreateCustomer(
-                collectoId,
-                clientId,
-                clientId
-              );
-              
-              customer.addBoughtPoints(transaction.points);
+            // Add bought points
+            customer.addBoughtPoints(dbTransaction.points);
+            await customerRepository.update(customer.id, {
+              boughtPoints: customer.boughtPoints,
+              currentPoints: customer.currentPoints
+            });
+
+            // Determine and update tier based on current points
+            const tier = await tierRepository.findTierForPoints(customer.currentPoints);
+            if (tier && customer.currentTierId !== tier.id) {
+              customer.currentTierId = tier.id;
               await customerRepository.update(customer.id, {
-                boughtPoints: customer.boughtPoints,
-                currentPoints: customer.currentPoints
+                currentTierId: tier.id
               });
-
-              // Determine tier based on current points
-              const tier = await tierRepository.findTierForPoints(customer.currentPoints);
-              if (tier && customer.currentTierId !== tier.id) {
-                customer.currentTierId = tier.id;
-                await customerRepository.update(customer.id, {
-                  currentTierId: tier.id
-                });
-              }
-
-              console.log(`Buy Points Transaction Confirmed: Customer ${customer.id} received ${transaction.points} points`);
             }
 
-            if (pendingPayments.has(transactionId)) {
-              const rec = pendingPayments.get(transactionId)!;
-              rec.status = isConfirmed ? "confirmed" : "pending";
-              rec.payment = payment;
-              pendingPayments.set(transactionId, rec);
-            }
-
-            return res.json({
-              transactionId,
-              status: isConfirmed ? "confirmed" : "pending",
-              payment,
-              transaction: {
-                id: transaction.id,
-                points: transaction.points,
-                paymentStatus: transaction.paymentStatus
-              }
-            });
-          } else {
-            // Transaction not found in database
-            return res.status(404).json({
-              transactionId,
-              message: "Transaction not found in database",
-              status: isConfirmed ? "confirmed" : "pending"
-            });
+            console.log(`Buy Points Transaction Confirmed: Customer ${customer.id} received ${dbTransaction.points} points`);
           }
-        } catch (txnErr: any) {
-          console.error("Error processing BUYPOINTS transaction:", txnErr.message);
-          // Still return payment status even if transaction storage fails
+
           return res.json({
             transactionId,
             status: isConfirmed ? "confirmed" : "pending",
             payment,
-            error: "Transaction storage failed but payment processed"
+            transaction: {
+              id: dbTransaction.id,
+              points: dbTransaction.points,
+              paymentStatus: statusFromCollecto
+            }
+          });
+        } catch (txnErr: any) {
+          console.error("Error processing BUYPOINTS transaction:", txnErr.message);
+          return res.status(500).json({
+            transactionId,
+            message: "Error updating transaction",
+            error: txnErr.message
           });
         }
       }
 
-      // Non-BUYPOINTS transactions
-      if (isConfirmed) {
-        if (pendingPayments.has(transactionId)) {
-          const rec = pendingPayments.get(transactionId)!;
-          rec.status = "confirmed";
-          rec.payment = payment;
-          pendingPayments.set(transactionId, rec);
-        }
-        return res.json({ transactionId, status: "confirmed", payment });
-      }
+      // Regular transactions (non-BUYPOINTS)
+      return res.json({
+        transactionId,
+        status: isConfirmed ? "confirmed" : "pending",
+        payment
+      });
 
-      return res.json({ transactionId, status: "pending", payment });
     } catch (err: any) {
       console.warn(
         "Failed to query Collecto for payment status:",
