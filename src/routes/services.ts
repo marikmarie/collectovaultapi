@@ -195,9 +195,7 @@ async function processInvoicesForPoints(
         clientId
       );
 
-      // Calculate points based on earning rule
-      // Points calculation: for "Make Purchase" rules, typically points per unit/invoice
-      const pointsEarned = purchaseRule.points;
+     const pointsEarned = purchaseRule.points;
 
       // Create transaction record for this invoice
       await transactionRepository.create(
