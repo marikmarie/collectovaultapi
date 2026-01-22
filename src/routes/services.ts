@@ -120,6 +120,15 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     });
     console.log(BASE_URL);
     console.log(response.data);
+
+    // Process invoices for earning points
+    try {
+      await processInvoicesForPoints(response.data, collectoId, clientId);
+    } catch (pointsErr: any) {
+      console.error("Error processing invoice points:", pointsErr.message);
+      // Don't fail the response, just log the error
+    }
+
     return res.json(response.data);
   } catch (error: any) {
     console.error(
@@ -132,6 +141,106 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     });
   }
 });
+
+// Helper function to process invoices and calculate points
+async function processInvoicesForPoints(
+  response: any,
+  collectoId: string,
+  clientId: string
+) {
+  if (!response?.data?.data || !Array.isArray(response.data.data)) {
+    console.log("No invoice data to process");
+    return;
+  }
+
+  const invoiceList = response.data.data;
+  const earningRules = await earningRuleRepository.findActive(collectoId);
+
+  // Find "Make Purchase" or "transaction" type earning rule
+  const purchaseRule = earningRules.find(
+    (rule) =>
+      rule.ruleTitle.toLowerCase().includes("make purchase") ||
+      rule.ruleTitle.toLowerCase().includes("transaction")
+  );
+
+  if (!purchaseRule) {
+    console.log("No 'Make Purchase' or 'transaction' earning rule found");
+    return;
+  }
+
+  console.log(`Using earning rule: ${purchaseRule.ruleTitle} with ${purchaseRule.points} points`);
+
+  for (const invoice of invoiceList) {
+    try {
+      const invoiceId = invoice.details?.id;
+      const totalAmountPaid = invoice.total_amount_paid || 0;
+
+      // Skip invoices that haven't been paid
+      if (!invoiceId || totalAmountPaid <= 0) {
+        console.log(`Skipping invoice ${invoiceId}: Not fully paid (${totalAmountPaid})`);
+        continue;
+      }
+
+      // Check if this invoice has already been processed
+      const existingTransaction = await transactionRepository.findByTransactionId(invoiceId);
+      if (existingTransaction) {
+        console.log(`Invoice ${invoiceId} already processed, skipping`);
+        continue;
+      }
+
+      // Get or create customer
+      const customer = await customerService.getOrCreateCustomer(
+        collectoId,
+        clientId,
+        clientId
+      );
+
+      // Calculate points based on earning rule
+      // Points calculation: for "Make Purchase" rules, typically points per unit/invoice
+      const pointsEarned = purchaseRule.points;
+
+      // Create transaction record for this invoice
+      await transactionRepository.create(
+        customer.id,
+        collectoId,
+        clientId,
+        invoiceId,
+        "INVOICE_PURCHASE",
+        totalAmountPaid,
+        pointsEarned,
+        null,
+        "CONFIRMED"
+      );
+
+      // Update customer's earned points and current points
+      customer.addEarnedPoints(pointsEarned);
+      await customerRepository.update(customer.id, {
+        earnedPoints: customer.earnedPoints,
+        currentPoints: customer.currentPoints,
+      });
+
+      // Determine and update tier based on current points
+      const tier = await tierRepository.findTierForPoints(customer.currentPoints);
+      if (tier && customer.currentTierId !== tier.id) {
+        customer.currentTierId = tier.id;
+        await customerRepository.update(customer.id, {
+          currentTierId: tier.id,
+        });
+      }
+
+      console.log(
+        `Invoice ${invoiceId} processed: Customer ${customer.id} earned ${pointsEarned} points`
+      );
+    } catch (invoiceErr: any) {
+      console.error(
+        `Error processing invoice ${invoice.details?.id}:`,
+        invoiceErr.message
+      );
+      // Continue to next invoice if one fails
+      continue;
+    }
+  }
+}
 
 router.post("/requestToPay", async (req: Request, res: Response) => {
   try {
