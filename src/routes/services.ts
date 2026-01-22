@@ -29,24 +29,6 @@ const customerService = new CustomerService(
   earningRuleRepository,
 );
 
-// Dummy data generators
-const getDummyPayment = (invoiceId: string, amount: number) => ({
-  id: `PAY-${Date.now()}`,
-  invoiceId,
-  amount,
-  method: "mm",
-  status: "success",
-  date: new Date(),
-});
-
-const getDummyInvoice = (collectoId: string, clientId: string) => ({
-  id: `INV-${Date.now()}`,
-  collectoId,
-  clientId,
-  amount: Math.floor(Math.random() * 5000) + 1000,
-  status: "paid",
-  date: new Date(),
-});
 
 const pendingPayments: Map<
   string,
@@ -519,7 +501,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
     });
   }
 });
-// Verify phone number endpoint - accepts phoneNumber (or phone_number / phone) in body
+
 router.post("/verifyPhoneNumber", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
@@ -629,7 +611,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
   }
 });
 
-// Query transactions endpoint
+
 router.get("/transactions", async (req: Request, res: Response) => {
   try {
     const { collectoId, clientId, customerId,  limit, offset } = req.query;
