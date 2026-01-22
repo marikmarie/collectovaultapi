@@ -23,8 +23,74 @@ export const CustomerRoutes = (): Router => {
   // GET endpoints
   router.get("/", customerController.getAllCustomers);
   router.get("/stats", customerController.getCustomerStats);
-  router.get("/:id", customerController.getCustomerById);
   router.get("/client/:clientId", customerController.getCustomerByClientId);
+  router.get("/info/:clientId", async (req, res) => {
+    try {
+      const { clientId } = req.params;
+
+      if (!clientId) {
+        return res.status(400).json({
+          message: "clientId is required",
+        });
+      }
+
+      // Get customer by clientId
+      const customer = await customerRepository.findByClientId(clientId);
+
+      if (!customer) {
+        return res.status(404).json({
+          message: "Customer not found",
+        });
+      }
+
+      // Get current tier information
+      let currentTier = null;
+      if (customer.currentTierId) {
+        currentTier = await tierRepository.findById(customer.currentTierId);
+      }
+
+      // Get all tiers for threshold information
+      const allTiers = await tierRepository.findAll(false);
+
+      return res.json({
+        success: true,
+        customer: {
+          id: customer.id,
+          collectoId: customer.collectoId,
+          clientId: customer.clientId,
+          name: customer.name,
+          currentPoints: customer.currentPoints,
+          earnedPoints: customer.earnedPoints,
+          boughtPoints: customer.boughtPoints,
+          totalPurchased: customer.totalPurchased,
+          isActive: customer.isActive,
+        },
+        currentTier: currentTier
+          ? {
+              id: currentTier.id,
+              name: currentTier.name,
+              pointsRequired: currentTier.pointsRequired,
+              earningMultiplier: currentTier.earningMultiplier,
+              isActive: currentTier.isActive,
+            }
+          : null,
+        tiers: allTiers.map((tier) => ({
+          id: tier.id,
+          name: tier.name,
+          pointsRequired: tier.pointsRequired,
+          earningMultiplier: tier.earningMultiplier,
+          isActive: tier.isActive,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Error fetching customer info:", error.message);
+      return res.status(500).json({
+        message: "Failed to fetch customer information",
+        error: error.message,
+      });
+    }
+  });
+  router.get("/:id", customerController.getCustomerById);
 
   // POST endpoints
   router.post("/", customerController.createCustomer);
