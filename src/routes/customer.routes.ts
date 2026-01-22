@@ -23,9 +23,12 @@ export const CustomerRoutes = (): Router => {
   // GET endpoints
   router.get("/", customerController.getAllCustomers);
   router.get("/stats", customerController.getCustomerStats);
+
+  //get customer details along with tier info and tier thresholds
   router.get("/info/:clientId", async (req, res) => {
     try {
       const { clientId } = req.params;
+      const { collectoId } = req.query;
 
       if (!clientId) {
         return res.status(400).json({
@@ -33,10 +36,15 @@ export const CustomerRoutes = (): Router => {
         });
       }
 
-      console.log("Fetching customer info for clientId:", clientId);
-      // Get customer by clientId
-      const customer = await customerRepository.findByClientId(clientId);
+      console.log("Fetching customer info for clientId:", clientId, "collectoId:", collectoId);
+      
+      // Get customer by clientId (with optional collectoId filter)
+      const customer = await customerRepository.findByClientId(
+        clientId,
+        collectoId ? String(collectoId) : undefined
+      );
 
+      console.log("Customer fetched:", customer);
       if (!customer) {
         return res.status(404).json({
           message: "Customer not found",
@@ -83,7 +91,7 @@ export const CustomerRoutes = (): Router => {
         })),
       });
     } catch (error: any) {
-      console.error("Error fetching customer info:", error.message);
+      console.error("Error fetching customer info:", error);
       return res.status(500).json({
         message: "Failed to fetch customer information",
         error: error.message,
