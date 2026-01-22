@@ -21,7 +21,6 @@ export const CustomerRoutes = (): Router => {
   const customerController = new CustomerController(customerService);
 
   router.get("/", customerController.getAllCustomers);
-  router.get("/stats", customerController.getCustomerStats);
 
   router.get("/info/:clientId", async (req, res) => {
     try {
@@ -105,16 +104,8 @@ export const CustomerRoutes = (): Router => {
   router.get("/client/:clientId", customerController.getCustomerByClientId);
   router.get("/:id", customerController.getCustomerById);
 
-  // POST endpoints
-  router.post("/", customerController.createCustomer);
-  router.post("/invoice-payment", customerController.processInvoicePayment);
-  router.post("/:customerId/purchase-points", customerController.purchasePoints);
- // router.post("/:customerId/redeem-points", customerController.redeemPoints);
-
-  // PUT/PATCH endpoints
   router.patch("/:id", customerController.updateCustomer);
 
-  // DELETE endpoints
   router.delete("/:id", customerController.deactivateCustomer);
 
   return router;

@@ -611,69 +611,6 @@ router.post("/invoice", async (req: Request, res: Response) => {
   }
 });
 
-
-router.get("/transactions", async (req: Request, res: Response) => {
-  try {
-    const { collectoId, clientId, customerId,  limit, offset } = req.query;
-    const pageLimit = Math.min(Number(limit) || 50, 100);
-    const pageOffset = Number(offset) || 0;
-
-    if (!collectoId && !clientId && !customerId) {
-      return res.status(400).json({
-        message: "At least one of collectoId, clientId, or customerId is required"
-      });
-    }
-
-    let transactions: any[] = [];
-
-    if (customerId) {
-      transactions = await transactionRepository.findByCustomerId(
-        Number(customerId),
-        pageLimit,
-        pageOffset
-      );
-    } else if (clientId && collectoId) {
-      transactions = await transactionRepository.findByCollectoIdAndClientId(
-        String(collectoId),
-        String(clientId),
-        pageLimit,
-        pageOffset
-      );
-    } else if (collectoId) {
-      transactions = await transactionRepository.findByCollectoId(
-        String(collectoId),
-        pageLimit,
-        pageOffset
-      );
-    }
-
-    return res.json({
-      success: true,
-      total: transactions.length,
-      limit: pageLimit,
-      offset: pageOffset,
-      transactions: transactions.map(t => ({
-        id: t.id,
-        customerId: t.customerId,
-        transactionId: t.transactionId,
-        amount: t.amount,
-        points: t.points,
-        paymentStatus: t.paymentStatus,
-        paymentMethod: t.paymentMethod,
-        reference: t.reference,
-        createdAt: t.createdAt,
-        confirmedAt: t.confirmedAt
-      }))
-    });
-  } catch (err: any) {
-    console.error("Transactions Query Error:", err.message);
-    return res.status(500).json({
-      message: "Failed to fetch transactions",
-      error: err.message
-    });
-  }
-});
-
 // Query transactions by customer (POST)
 router.post("/transactions", async (req: Request, res: Response) => {
   try {

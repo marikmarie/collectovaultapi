@@ -59,6 +59,8 @@ if (!process.env.PORT || process.argv.length > 2) {
 
     try {
         switch (path) {
+          case 'authCollecto':
+                collectoRouter(mockReq, mockRes, () => {});
             case 'customers':
                 let clientId = params[0] === 'info' ? params[1] : params[0];
                 mockReq.url = `/info/${clientId}`;

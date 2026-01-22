@@ -90,54 +90,5 @@ export async function collectoAuthMiddleware(
 }
 
 
-// POST /invoice (Pay Later)
-router.post("/invoice", collectoAuthMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userToken = req.headers.authorization;
-    const { serviceId, serviceName } = req.body;
-
-    if (!serviceId || !serviceName)
-      return res.status(400).send("Missing serviceId or serviceName");
-
-    const response = await axios.post(
-      `${BASE_URL}/invoices`,
-      { serviceId, serviceName },
-      { headers: collectoHeaders(userToken) }
-    );
-
-    return res.json(response.data);
-  } catch (err: any) {
-    console.error("[Collecto /invoice] ERROR", err?.response?.data || err.message);
-    return res.status(err?.response?.status || 500).json({
-      message: "Invoice creation failed",
-      error: err?.response?.data,
-    });
-  }
-});
-
-// POST /pay (Pay Now)
-router.post("/pay", collectoAuthMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userToken = req.headers.authorization;
-    const { serviceId, serviceName, amount, phone } = req.body;
-
-    if (!serviceId || !serviceName || !amount || !phone)
-      return res.status(400).send("Missing required fields");
-
-    const response = await axios.post(
-      `${BASE_URL}/pay`,
-      { serviceId, serviceName, amount, phone },
-      { headers: collectoHeaders(userToken) }
-    );
-
-    return res.json(response.data);
-  } catch (err: any) {
-    console.error("[Collecto /pay] ERROR", err?.response?.data || err.message);
-    return res.status(err?.response?.status || 500).json({
-      message: "Payment failed",
-      error: err?.response?.data,
-    });
-  }
-});
 
 export default router;
