@@ -29,11 +29,6 @@ const getDummyCustomer = (collectoId: string, clientId: string, name: string) =>
   totalPurchased: Math.floor(Math.random() * 10000),
 });
 
-const getDummyInvoice = () => ({
-  id: `INV-${Date.now()}`,
-  amount: Math.floor(Math.random() * 5000) + 1000,
-  date: new Date(),
-});
 
 export class CustomerService {
   constructor(

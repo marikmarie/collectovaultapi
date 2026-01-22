@@ -23,7 +23,6 @@ export const CustomerRoutes = (): Router => {
   // GET endpoints
   router.get("/", customerController.getAllCustomers);
   router.get("/stats", customerController.getCustomerStats);
-  router.get("/client/:clientId", customerController.getCustomerByClientId);
   router.get("/info/:clientId", async (req, res) => {
     try {
       const { clientId } = req.params;
@@ -34,6 +33,7 @@ export const CustomerRoutes = (): Router => {
         });
       }
 
+      console.log("Fetching customer info for clientId:", clientId);
       // Get customer by clientId
       const customer = await customerRepository.findByClientId(clientId);
 
@@ -90,6 +90,7 @@ export const CustomerRoutes = (): Router => {
       });
     }
   });
+  router.get("/client/:clientId", customerController.getCustomerByClientId);
   router.get("/:id", customerController.getCustomerById);
 
   // POST endpoints
