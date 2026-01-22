@@ -76,6 +76,19 @@ export class VaultPackageRepository {
     return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
   }
 
+  async findByPrice(price: number, collectoId?: string): Promise<VaultPackage | null> {
+    let query = "SELECT * FROM vault_packages WHERE price = ? AND is_active = TRUE";
+    const params: any[] = [price];
+
+    if (collectoId) {
+      query += " AND collecto_id = ?";
+      params.push(collectoId);
+    }
+
+    const [rows] = await pool.query<VaultPackageRow[]>(query, params);
+    return rows.length > 0 ? this.mapRowToVaultPackage(rows[0]) : null;
+  }
+
   async findPopular(collectoId?: string): Promise<VaultPackage[]> {
     if (collectoId) {
       const [rows] = await pool.query<VaultPackageRow[]>(

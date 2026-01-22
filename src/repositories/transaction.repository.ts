@@ -89,11 +89,21 @@ export class TransactionRepository {
     return rows.length > 0 ? this.mapRowToTransaction(rows[0]) : null;
   }
 
-  async findByCustomerId(customerId: number, limit: number = 50, offset: number = 0): Promise<Transaction[]> {
-    const [rows] = await pool.query<TransactionRow[]>(
-      "SELECT * FROM vault_transactions WHERE customer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-      [customerId, limit, offset]
-    );
+  async findByCustomerId(customerId: number | string, limit: number = 50, offset: number = 0): Promise<Transaction[]> {
+    let query: string;
+    const params: any[] = [];
+    
+    if (typeof customerId === 'number') {
+      query = "SELECT * FROM vault_transactions WHERE customer_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+      params.push(customerId);
+    } else {
+      // If string, treat as collecto_id
+      query = "SELECT * FROM vault_transactions WHERE client_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+      params.push(customerId);
+    }
+    
+    params.push(limit, offset);
+    const [rows] = await pool.query<TransactionRow[]>(query, params);
     return rows.map((row) => this.mapRowToTransaction(row));
   }
 

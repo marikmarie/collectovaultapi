@@ -6,6 +6,7 @@ import { CustomerRepository } from "../repositories/customer.repository";
 import { TierRepository } from "../repositories/tier.repository";
 import { EarningRuleRepository } from "../repositories/earning-rule.repository";
 import { TransactionRepository } from "../repositories/transaction.repository";
+import { VaultPackageRepository } from "../repositories/vault-package.repository";
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ const customerRepository = new CustomerRepository();
 const tierRepository = new TierRepository();
 const earningRuleRepository = new EarningRuleRepository();
 const transactionRepository = new TransactionRepository();
+const vaultPackageRepository = new VaultPackageRepository();
 
 // Initialize customer service for point calculations
 const customerService = new CustomerService(
@@ -70,6 +72,8 @@ router.post("/services", async (req: Request, res: Response) => {
     const { vaultOTPToken, collectoId, page } = req.body;
     const token = req.headers.authorization as string | undefined;
     const pageNumber = typeof page === "number" ? page : parseInt(page) || 1;
+
+    console.log(req.body);
     
     if (!collectoId && !vaultOTPToken) {
       return res
@@ -77,13 +81,7 @@ router.post("/services", async (req: Request, res: Response) => {
         .json({ message: "collectoId is required in the request body" });
     }
 
-    console.log(
-      "Fetching services for collectoId:",
-      collectoId,
-      vaultOTPToken,
-      "page:",
-      pageNumber,
-    );
+
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`,
       { vaultOTPToken, collectoId, page: pageNumber },
@@ -177,10 +175,6 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
 
       const collectoData = response.data;
 
-      /**
-       * Based on your provided response:
-       * { status: '200', status_message: 'success', data: { transactionId: 'PMT154257', ... } }
-       */
       const innerData = collectoData?.data || {};
       const transactionId =
         innerData.transactionId || innerData.id || `TXN-${Date.now()}`;
@@ -197,6 +191,45 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
         createdAt: new Date(),
       });
 
+      // If this is a BUYPOINTS transaction, log it to the database immediately as pending
+      if (reference && reference.includes("BUYPOINTS")) {
+        try {
+          const customer = await customerService.getOrCreateCustomer(
+            collectoId,
+            clientId,
+            clientId
+          );
+
+          // Look up the package by price to get the points amount
+          let pointsToAdd = Math.floor(amount || 0); // Default to amount if package not found
+          const vaultPackage = await vaultPackageRepository.findByPrice(amount, collectoId);
+          
+          if (vaultPackage) {
+            pointsToAdd = vaultPackage.pointsAmount;
+            console.log(`Found package for price ${amount}: ${vaultPackage.name} with ${pointsToAdd} points`);
+          } else {
+            console.log(`No package found for price ${amount}, using default points calculation`);
+          }
+
+          await transactionRepository.create(
+            customer.id,
+            collectoId,
+            clientId,
+            transactionId,
+            reference,
+            amount || 0,
+            pointsToAdd,
+            payload.paymentOption || null,
+            "PENDING" 
+          );
+
+          console.log(`BUYPOINTS transaction logged with ID: ${transactionId}, Status: pending, Points: ${pointsToAdd}`);
+        } catch (txnErr: any) {
+          console.error("Error logging BUYPOINTS transaction:", txnErr.message);
+          // Continue even if logging fails, the payment can still be tracked
+        }
+      }
+
       // Return the specific format you requested
       return res.json({
         status: collectoData.status || "200",
@@ -210,29 +243,13 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
         },
       });
     } catch (err: any) {
-      console.warn(
-        "Collecto Request failed, falling back to local pending:",
+      console.error(
+        "Collecto Request failed:",
         err.message,
       );
-
-      const fallbackId = `PMT-LOCAL-${Date.now()}`;
-
-      // Save local fallback record
-      pendingPayments.set(fallbackId, {
-        status: "pending",
-        payment: { transactionId: fallbackId, amount, collectoId, clientId },
-        createdAt: new Date(),
-      });
-
-      return res.json({
-        status: "200",
-        status_message: "success",
-        data: {
-          requestToPay: true,
-          message:
-            "Payment request initiated (Local Fallback). Please check your phone.",
-          transactionId: fallbackId,
-        },
+      return res.status(500).json({
+        message: "Request to pay failed",
+        error: err.message,
       });
     }
   } catch (err: any) {
@@ -243,12 +260,13 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
     });
   }
 });
+
 // Query payment/invoice status via POST
 router.post("/requestToPayStatus", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
     // Extract transactionId specifically from the request body
-    const { vaultOTPToken, collectoId, clientId, transactionId, reference, amount } = req.body;
+    const { vaultOTPToken, collectoId, clientId, transactionId, reference } = req.body;
     console.log("RequestToPayStatus for transactionId:", req.body);
 
     if (!userToken) return res.status(401).send("Missing user token");
@@ -311,76 +329,65 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
       // Handle BUYPOINTS transactions
       if (reference && reference.includes("BUYPOINTS")) {
         try {
-          // Get or create customer
-          const customer = await customerService.getOrCreateCustomer(
-            collectoId,
-            clientId,
-            clientId
-          );
-
-          // Check if transaction already exists
           let transaction = await transactionRepository.findByTransactionId(transactionId);
-
-          if (!transaction) {
-            // Calculate points from amount (e.g., 1 point per currency unit)
-            const pointsToAdd = Math.floor(amount || 0);
-
-            // Create new transaction
-            transaction = await transactionRepository.create(
-              customer.id,
-              collectoId,
-              clientId,
-              transactionId,
-              reference,
-              amount || 0,
-              pointsToAdd,
-              payment.paymentMethod || payment.method || null,
-              statusFromCollecto
-            );
-          } else {
+          if (transaction) {
             // Update existing transaction payment status
             transaction = await transactionRepository.updatePaymentStatus(
               transaction.id,
               statusFromCollecto
             );
-          }
 
-          // If transaction is confirmed, update customer points
-          if (isConfirmed) {
-            customer.addBoughtPoints(transaction.points);
-            await customerRepository.update(customer.id, {
-              boughtPoints: customer.boughtPoints,
-              currentPoints: customer.currentPoints
-            });
-
-            // Determine tier based on current points
-            const tier = await tierRepository.findTierForPoints(customer.currentPoints);
-            if (tier && customer.currentTierId !== tier.id) {
-              customer.currentTierId = tier.id;
+            // If transaction is confirmed, update customer points
+            if (isConfirmed) {
+              const customer = await customerService.getOrCreateCustomer(
+                collectoId,
+                clientId,
+                clientId
+              );
+              
+              customer.addBoughtPoints(transaction.points);
               await customerRepository.update(customer.id, {
-                currentTierId: tier.id
+                boughtPoints: customer.boughtPoints,
+                currentPoints: customer.currentPoints
               });
+
+              // Determine tier based on current points
+              const tier = await tierRepository.findTierForPoints(customer.currentPoints);
+              if (tier && customer.currentTierId !== tier.id) {
+                customer.currentTierId = tier.id;
+                await customerRepository.update(customer.id, {
+                  currentTierId: tier.id
+                });
+              }
+
+              console.log(`Buy Points Transaction Confirmed: Customer ${customer.id} received ${transaction.points} points`);
             }
 
-            console.log(`Buy Points Transaction Confirmed: Customer ${customer.id} received ${transaction.points} points`);
-          }
-
-          if (pendingPayments.has(transactionId)) {
-            const rec = pendingPayments.get(transactionId)!;
-            rec.status = isConfirmed ? "confirmed" : "pending";
-            rec.payment = payment;
-            pendingPayments.set(transactionId, rec);
-          }
-
-          return res.json({
-            transactionId,
-            status: isConfirmed ? "confirmed" : "pending",
-            payment,
-            transaction: {
-              id: transaction.id,
-              points: transaction.points
+            if (pendingPayments.has(transactionId)) {
+              const rec = pendingPayments.get(transactionId)!;
+              rec.status = isConfirmed ? "confirmed" : "pending";
+              rec.payment = payment;
+              pendingPayments.set(transactionId, rec);
             }
-          });
+
+            return res.json({
+              transactionId,
+              status: isConfirmed ? "confirmed" : "pending",
+              payment,
+              transaction: {
+                id: transaction.id,
+                points: transaction.points,
+                paymentStatus: transaction.paymentStatus
+              }
+            });
+          } else {
+            // Transaction not found in database
+            return res.status(404).json({
+              transactionId,
+              message: "Transaction not found in database",
+              status: isConfirmed ? "confirmed" : "pending"
+            });
+          }
         } catch (txnErr: any) {
           console.error("Error processing BUYPOINTS transaction:", txnErr.message);
           // Still return payment status even if transaction storage fails
@@ -481,7 +488,7 @@ router.post("/verifyPhoneNumber", async (req: Request, res: Response) => {
 router.post("/invoice", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    const { items, vaultOTPToken, totalAmount } = req.body;
+    const { items, vaultOTPToken, totalAmount, staffId } = req.body;
 
     if (!userToken) return res.status(401).send("Missing user token");
     if (!Array.isArray(items) || items.length === 0)
@@ -527,7 +534,8 @@ router.post("/invoice", async (req: Request, res: Response) => {
       items: forwardItems,
       amount: finalAmount,
       collectoId: String(collectoId),
-      clientId: String(clientId)
+      clientId: String(clientId),
+      ...(staffId && { staffId })
     };
 
     const response = await axios.post(`${BASE_URL}/createInvoice`, payload, {
@@ -548,7 +556,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
 // Query transactions endpoint
 router.get("/transactions", async (req: Request, res: Response) => {
   try {
-    const { collectoId, clientId, customerId, type, status, limit, offset } = req.query;
+    const { collectoId, clientId, customerId,  limit, offset } = req.query;
     const pageLimit = Math.min(Number(limit) || 50, 100);
     const pageOffset = Number(offset) || 0;
 
@@ -609,7 +617,7 @@ router.get("/transactions", async (req: Request, res: Response) => {
 });
 
 // Query transactions by customer (POST)
-router.post("/transactions/customer", async (req: Request, res: Response) => {
+router.post("/transactions", async (req: Request, res: Response) => {
   try {
     const { customerId, limit, offset } = req.body;
     const pageLimit = Math.min(Number(limit) || 50, 100);
@@ -620,13 +628,15 @@ router.post("/transactions/customer", async (req: Request, res: Response) => {
         message: "customerId is required"
       });
     }
-
+     
+    console.log("Fetching transactions for customerId:", customerId, "limit:", pageLimit, "offset:", pageOffset);
     let transactions = await transactionRepository.findByCustomerId(
-      Number(customerId),
+      customerId,
       pageLimit,
       pageOffset
     );
 
+    console.log(`Found ${transactions.length} transactions for customerId:`, customerId);
     return res.json({
       success: true,
       customerId,
@@ -645,6 +655,8 @@ router.post("/transactions/customer", async (req: Request, res: Response) => {
         confirmedAt: t.confirmedAt
       }))
     });
+
+    console
   } catch (err: any) {
     console.error("Transactions Customer Query Error:", err.message);
     return res.status(500).json({
