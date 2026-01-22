@@ -20,11 +20,9 @@ export const CustomerRoutes = (): Router => {
 
   const customerController = new CustomerController(customerService);
 
-  // GET endpoints
   router.get("/", customerController.getAllCustomers);
   router.get("/stats", customerController.getCustomerStats);
 
-  //get customer details along with tier info and tier thresholds
   router.get("/info/:clientId", async (req, res) => {
     try {
       const { clientId } = req.params;
@@ -36,9 +34,11 @@ export const CustomerRoutes = (): Router => {
         });
       }
 
+      
+
       console.log("Fetching customer info for clientId:", clientId, "collectoId:", collectoId);
       
-      // Get customer by clientId (with optional collectoId filter)
+      // Get customer by clientId 
       const customer = await customerRepository.findByClientId(
         clientId,
         collectoId ? String(collectoId) : undefined
@@ -92,9 +92,13 @@ export const CustomerRoutes = (): Router => {
       });
     } catch (error: any) {
       console.error("Error fetching customer info:", error);
+      console.error("Error type:", typeof error);
+      console.error("Error toString:", error?.toString?.());
       return res.status(500).json({
+        success: false,
         message: "Failed to fetch customer information",
-        error: error.message,
+        error: error?.message || error?.toString?.() || JSON.stringify(error) || "Unknown error",
+        errorType: typeof error
       });
     }
   });
