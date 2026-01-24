@@ -226,7 +226,7 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
     const userToken = req.headers.authorization;
     if (!userToken) return res.status(401).send("Missing user token");
 
-    const payload = { ...req.body }; // ✅ use req.body directly
+    const payload = { ...req.body }; 
 
     const {
       paymentOption,
@@ -235,6 +235,7 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       phone,
       reference,
       amount,
+      staffId,
       points,
     } = payload;
 
@@ -250,8 +251,7 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
     }
 
     try {
-      console.log("Calling Collecto requestToPay API", payload);
-
+      
       const response = await axios.post(
         `${BASE_URL}/requestToPay`,
         payload,
@@ -277,7 +277,6 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
         createdAt: new Date(),
       });
 
-      // BUYPOINTS handling (unchanged logic, now supports points object)
       if (reference?.includes("BUYPOINTS")) {
         try {
           const customer = await customerService.getOrCreateCustomer(
