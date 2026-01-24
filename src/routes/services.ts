@@ -63,7 +63,6 @@ router.post("/services", async (req: Request, res: Response) => {
         .json({ message: "collectoId is required in the request body" });
     }
 
-
     const response = await axios.post(
       `${BASE_URL}/servicesAndProducts`,
       { vaultOTPToken, collectoId, page: pageNumber },
@@ -84,9 +83,11 @@ router.post("/services", async (req: Request, res: Response) => {
 
 router.post("/invoiceDetails", async (req: Request, res: Response) => {
   try {
-    const token = req.headers.authorization;
-    if (!token) return res.status(401).send("Missing user token");
 
+    // const token = req.headers.authorization;
+    const token = req.headers.authorization as string | undefined;
+
+    if (!token) return res.status(401).send("Missing user token");
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
 
     const params: any = {
@@ -103,13 +104,11 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     console.log(BASE_URL);
     console.log(response.data);
 
-    // Process invoices for earning points
     try {
       await processInvoicesForPoints(response.data, collectoId, clientId);
     } catch (pointsErr: any) {
       console.error("Error processing invoice points:", pointsErr.message);
-      // Don't fail the response, just log the error
-    }
+     }
 
     return res.json(response.data);
   } catch (error: any) {
@@ -225,50 +224,47 @@ async function processInvoicesForPoints(
 router.post("/requestToPay", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
+    if (!userToken) return res.status(401).send("Missing user token");
+
+    const payload = { ...req.body }; // ✅ use req.body directly
 
     const {
-      vaultOTPToken,
+      paymentOption,
       collectoId,
       clientId,
-      paymentOption,
       phone,
-      amount,
       reference,
-    } = req.body;
+      amount,
+      points,
+    } = payload;
 
-    if (!userToken) return res.status(401).send("Missing user token");
-    if (!paymentOption) return res.status(400).send("Missing payment method");
+    if (!paymentOption)
+      return res.status(400).send("Missing payment method");
+
     if (!collectoId || !clientId)
       return res.status(400).send("Missing collectoId or clientId");
 
-    const payload: any = {
-      paymentOption,
-      collectoId,
-      clientId,
-      reference,
-      amount,
-    };
-
-    if (vaultOTPToken) payload.vaultOTPToken = vaultOTPToken;
-
-    // Normalize phone to 256 format
+    // Normalize phone to 256 format (only if provided)
     if (phone) {
       payload.phone = phone.replace(/^0/, "256");
     }
 
     try {
       console.log("Calling Collecto requestToPay API", payload);
-      const response = await axios.post(`${BASE_URL}/requestToPay`, payload, {
-        headers: collectoHeaders(userToken),
-      });
+
+      const response = await axios.post(
+        `${BASE_URL}/requestToPay`,
+        payload,
+        { headers: collectoHeaders(userToken) }
+      );
 
       const collectoData = response.data;
-
       const innerData = collectoData?.data || {};
+
       const transactionId =
         innerData.transactionId || innerData.id || `TXN-${Date.now()}`;
 
-      // Store in local memory/cache as "pending" so the /requestToPayStatus can find it later
+      // Store pending payment
       pendingPayments.set(transactionId, {
         status: "pending",
         payment: {
@@ -276,12 +272,13 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
           amount,
           collectoId,
           clientId,
+          points,
         },
         createdAt: new Date(),
       });
 
-      // If this is a BUYPOINTS transaction, log it to the database immediately as pending
-      if (reference && reference.includes("BUYPOINTS")) {
+      // BUYPOINTS handling (unchanged logic, now supports points object)
+      if (reference?.includes("BUYPOINTS")) {
         try {
           const customer = await customerService.getOrCreateCustomer(
             collectoId,
@@ -289,15 +286,15 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
             clientId
           );
 
-          // Look up the package by price to get the points amount
-          let pointsToAdd = Math.floor(amount || 0); // Default to amount if package not found
-          const vaultPackage = await vaultPackageRepository.findByPrice(amount, collectoId);
-          
+          let pointsToAdd =
+            points?.points_used ??
+            Math.floor(amount || 0);
+
+          const vaultPackage =
+            await vaultPackageRepository.findByPrice(amount, collectoId);
+
           if (vaultPackage) {
             pointsToAdd = vaultPackage.pointsAmount;
-            console.log(`Found package for price ${amount}: ${vaultPackage.name} with ${pointsToAdd} points`);
-          } else {
-            console.log(`No package found for price ${amount}, using default points calculation`);
           }
 
           await transactionRepository.create(
@@ -308,18 +305,18 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
             reference,
             amount || 0,
             pointsToAdd,
-            payload.paymentOption || null,
-            "PENDING" 
+            paymentOption,
+            "PENDING"
           );
 
-          console.log(`BUYPOINTS transaction logged with ID: ${transactionId}, Status: pending, Points: ${pointsToAdd}`);
+          console.log(
+            `BUYPOINTS logged: ${transactionId}, Points: ${pointsToAdd}`
+          );
         } catch (txnErr: any) {
           console.error("Error logging BUYPOINTS transaction:", txnErr.message);
-          // Continue even if logging fails, the payment can still be tracked
         }
       }
 
-      // Return the specific format you requested
       return res.json({
         status: collectoData.status || "200",
         status_message: collectoData.status_message || "success",
@@ -328,14 +325,11 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
           message:
             innerData.message ||
             "Confirm payment via the prompt on your phone.",
-          transactionId: transactionId,
+          transactionId,
         },
       });
     } catch (err: any) {
-      console.error(
-        "Collecto Request failed:",
-        err.message,
-      );
+      console.error("Collecto Request failed:", err.message);
       return res.status(500).json({
         message: "Request to pay failed",
         error: err.message,
@@ -650,8 +644,6 @@ router.post("/transactions", async (req: Request, res: Response) => {
         confirmedAt: t.confirmedAt
       }))
     });
-
-    console
   } catch (err: any) {
     console.error("Transactions Customer Query Error:", err.message);
     return res.status(500).json({

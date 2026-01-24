@@ -23,12 +23,13 @@ function collectoHeaders(userToken?: string) {
 // POST /auth
 router.post("/auth", async (req: Request, res: Response) => {
   try {
-    console.log("REQ BODY", req.body);
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "Request body is required" });
+    }
     const response = await axios.post(`${BASE_URL}/auth`, req.body, {
       headers: collectoHeaders(),
-    });   
-    console.log(BASE_URL);
-    console.log("RESPONSE DATA", response.data);
+    });
     return res.status(response.status).json(response.data);
 
   } catch (err: any) {
@@ -41,7 +42,7 @@ router.post("/auth", async (req: Request, res: Response) => {
 });
 
 // POST /auth/verify
-router.post("/authverify", async (req: Request, res: Response) => {
+router.post("/authVerify", async (req: Request, res: Response) => {
   try {
     console.log(req.body);
     const response = await axios.post(`${BASE_URL}/authVerify`, req.body, {
