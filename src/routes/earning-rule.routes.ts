@@ -14,7 +14,7 @@ const earningRuleController = new EarningRuleController(earningRuleService);
 // Query routes (GET with filters)
 router.get("/", earningRuleController.getAllRules);
 router.get("/active", earningRuleController.getActiveRules);
-router.get("/by-points", earningRuleController.getRulesByPointsRange);
+router.get("/buy-points", earningRuleController.getRulesByPointsRange);
 router.get("/collecto/:collectoId", earningRuleController.getRulesByCollectoId);
 
 // CRUD routes

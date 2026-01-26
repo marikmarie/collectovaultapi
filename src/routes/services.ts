@@ -264,7 +264,6 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       const transactionId =
         innerData.transactionId || innerData.id || `TXN-${Date.now()}`;
 
-      // Store pending payment
       pendingPayments.set(transactionId, {
         status: "pending",
         payment: {
@@ -383,7 +382,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
 
       console.log("Collecto payment status response:", response.data);
       const data = response.data;
-      let payment: any = data;
+      let payment: any = data.data;
 
       // Extract status from payment
       const statusFromCollecto = (

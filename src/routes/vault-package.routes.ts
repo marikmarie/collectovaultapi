@@ -11,7 +11,7 @@ const vaultPackageService = new VaultPackageService(vaultPackageRepository);
 const vaultPackageController = new VaultPackageController(vaultPackageService);
 
 // Query routes (GET with filters)
-router.get("/", vaultPackageController.getAllPackages);
+router.get("/set", vaultPackageController.getAllPackages);
 router.get("/active", vaultPackageController.getActivePackages);
 router.get("/popular", vaultPackageController.getPopularPackages);
 router.get("/collecto/:collectoId", vaultPackageController.getPackagesByCollectoId);
