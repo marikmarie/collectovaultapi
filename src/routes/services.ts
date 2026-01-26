@@ -87,7 +87,6 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
     // const token = req.headers.authorization;
     const token = req.headers.authorization as string | undefined;
 
-    if (!token) return res.status(401).send("Missing user token");
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
 
     const params: any = {
@@ -224,7 +223,7 @@ async function processInvoicesForPoints(
 router.post("/requestToPay", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    if (!userToken) return res.status(401).send("Missing user token");
+   
 
     const payload = { ...req.body }; 
 
@@ -349,7 +348,6 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
     const { vaultOTPToken, collectoId, clientId, transactionId } = req.body;
     console.log("RequestToPayStatus for transactionId:", transactionId);
 
-    if (!userToken) return res.status(401).send("Missing user token");
     if (!transactionId)
       return res.status(400).send("Missing transactionId in body");
 
@@ -500,7 +498,6 @@ router.post("/verifyPhoneNumber", async (req: Request, res: Response) => {
     const { vaultOTPToken, collectoId, clientId, phoneNumber } = req.body;
     console.log("Phone verification request for number:", req.body);
 
-    if (!userToken) return res.status(401).send("Missing user token");
     if (!phoneNumber) return res.status(400).send("Missing phoneNumber");
 
     try {
@@ -540,7 +537,6 @@ router.post("/invoice", async (req: Request, res: Response) => {
     const userToken = req.headers.authorization;
     const { items, vaultOTPToken, totalAmount, staffId } = req.body;
 
-    if (!userToken) return res.status(401).send("Missing user token");
     if (!Array.isArray(items) || items.length === 0)
       return res.status(400).send("Invalid or missing items");
 
