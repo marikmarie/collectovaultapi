@@ -83,10 +83,8 @@ router.post("/services", async (req: Request, res: Response) => {
 
 router.post("/invoiceDetails", async (req: Request, res: Response) => {
   try {
-
     // const token = req.headers.authorization;
     const token = req.headers.authorization as string | undefined;
-
     const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
 
     const params: any = {
