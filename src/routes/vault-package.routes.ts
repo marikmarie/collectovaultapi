@@ -1,4 +1,3 @@
-//package route
 import { Router } from "express";
 import { VaultPackageController } from "../contollers/vault-package.controller";
 import { VaultPackageService } from "../services/vault-package.service";
@@ -11,27 +10,17 @@ const vaultPackageRepository = new VaultPackageRepository();
 const vaultPackageService = new VaultPackageService(vaultPackageRepository);
 const vaultPackageController = new VaultPackageController(vaultPackageService);
 
-// Query routes (GET with filters)
-router.get("/set", vaultPackageController.getAllPackages);
-router.get("/active", vaultPackageController.getActivePackages);
-router.get("/popular", vaultPackageController.getPopularPackages);
+
+// Get packages for a specific collecto/vendor
 router.get("/collecto/:collectoId", vaultPackageController.getPackagesByCollectoId);
 
-// CRUD routes
+// Get package by id
 router.get("/:id", vaultPackageController.getPackageById);
-router.post("/", vaultPackageController.createPackage);
-router.put("/:id", vaultPackageController.updatePackage);
-router.delete("/:id", vaultPackageController.deletePackage);
 
-// Specific update routes
-router.patch("/:id/price", vaultPackageController.updatePrice);
-router.patch("/:id/points", vaultPackageController.updatePointsAmount);
-router.patch("/:id/name", vaultPackageController.updateName);
+// Create a package for a specific collecto/vendor
+router.post("/:collectoId/packages", vaultPackageController.createPackage);
 
-// Status management routes
-router.patch("/:id/activate", vaultPackageController.activatePackage);
-router.patch("/:id/deactivate", vaultPackageController.deactivatePackage);
-router.patch("/:id/mark-popular", vaultPackageController.markAsPopular);
-router.patch("/:id/unmark-popular", vaultPackageController.unmarkAsPopular);
+// Delete package for a vendor (matches frontend path)
+router.delete("/:collectoId/packages/:id", vaultPackageController.deletePackage);
 
 export default router;
