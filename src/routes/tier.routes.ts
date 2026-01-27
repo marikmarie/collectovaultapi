@@ -11,7 +11,7 @@ const tierService = new TierService(tierRepository);
 const tierController = new TierController(tierService);
 
 // Get tiers for a specific collecto/vendor
-router.get("/collecto/:collectoId", tierController.getTiersByCollectoId);
+router.get("/:collectoId", tierController.getTiersByCollectoId);
 
 // Get single tier by id
 router.get("/:id", tierController.getTierById);

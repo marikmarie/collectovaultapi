@@ -12,7 +12,7 @@ const vaultPackageController = new VaultPackageController(vaultPackageService);
 
 
 // Get packages for a specific collecto/vendor
-router.get("/collecto/:collectoId", vaultPackageController.getPackagesByCollectoId);
+router.get("/:collectoId", vaultPackageController.getPackagesByCollectoId);
 
 // Get package by id
 router.get("/:id", vaultPackageController.getPackageById);

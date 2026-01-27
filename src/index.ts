@@ -156,14 +156,6 @@ if (isCLIMode) {
           if (!responsesSent) mockRes.status(404).json({ error: "Transaction route not found" });
         });
         break;
-      // case "transactions":
-      //   mockReq.method = params[0] && !params[0].includes("=") ? "GET" : "POST";
-      //   mockReq.url = params[0] && !params[0].includes("=") ? `/transactions/${params[0]}` : "/transactions";
-      //   mockReq.body = mockReq.method === "GET" ? {} : parseInputData(params.slice(mockReq.method === "GET" ? 1 : 0));
-      //   servicesRouter(mockReq, mockRes, () => {
-      //     if (!responsesSent) mockRes.status(404).json({ error: "Service route not found" });
-      //   });
-      //   break;
 
       case "customers":
         mockReq.method = "GET";

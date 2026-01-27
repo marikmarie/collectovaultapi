@@ -12,7 +12,7 @@ const earningRuleController = new EarningRuleController(earningRuleService);
 
 
 // Get rules for a specific collecto/vendor
-router.get("/collecto/:collectoId", earningRuleController.getRulesByCollectoId);
+router.get("/:collectoId", earningRuleController.getRulesByCollectoId);
 
 // Get single rule by id
 router.get("/:id", earningRuleController.getRuleById);
