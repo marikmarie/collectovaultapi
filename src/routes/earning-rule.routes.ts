@@ -1,4 +1,4 @@
-// routes/earning-rule.routes.ts
+// points/earning-rule.routes.ts
 import { Router } from "express";
 import { EarningRuleController } from "../contollers/earning-rule.controller";
 import { EarningRuleService } from "../services/earning-rule.service";
@@ -14,7 +14,6 @@ const earningRuleController = new EarningRuleController(earningRuleService);
 // Query routes (GET with filters)
 router.get("/", earningRuleController.getAllRules);
 router.get("/active", earningRuleController.getActiveRules);
-router.get("/buy-points", earningRuleController.getRulesByPointsRange);
 router.get("/collecto/:collectoId", earningRuleController.getRulesByCollectoId);
 
 // CRUD routes

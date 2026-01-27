@@ -1,4 +1,4 @@
-
+//tier route
 import { Router } from "express";
 import { TierController } from "../contollers/tiers.controller";
 import { TierService } from "../services/tier.service";
