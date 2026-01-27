@@ -10,14 +10,6 @@ const tierRepository = new TierRepository();
 const tierService = new TierService(tierRepository);
 const tierController = new TierController(tierService);
 
-/**
- * Routes matching the frontend:
- * GET  /tier/collecto/:collectoId           -> list tiers for vendor
- * GET  /tier/:id                             -> get tier by id
- * POST /tier/:collectoId                     -> create tier for vendor
- * DELETE /tier/:collectoId/tier/:tierId     -> delete tier
- */
-
 // Get tiers for a specific collecto/vendor
 router.get("/collecto/:collectoId", tierController.getTiersByCollectoId);
 
