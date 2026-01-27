@@ -1,4 +1,3 @@
-// points/earning-rule.routes.ts
 import { Router } from "express";
 import { EarningRuleController } from "../contollers/earning-rule.controller";
 import { EarningRuleService } from "../services/earning-rule.service";
@@ -11,23 +10,17 @@ const earningRuleRepository = new EarningRuleRepository();
 const earningRuleService = new EarningRuleService(earningRuleRepository);
 const earningRuleController = new EarningRuleController(earningRuleService);
 
-// Query routes (GET with filters)
-router.get("/", earningRuleController.getAllRules);
-router.get("/active", earningRuleController.getActiveRules);
+
+// Get rules for a specific collecto/vendor
 router.get("/collecto/:collectoId", earningRuleController.getRulesByCollectoId);
 
-// CRUD routes
+// Get single rule by id
 router.get("/:id", earningRuleController.getRuleById);
-router.post("/", earningRuleController.createRule);
-router.put("/:id", earningRuleController.updateRule);
-router.delete("/:id", earningRuleController.deleteRule);
 
-// Specific update routes
-router.patch("/:id/points", earningRuleController.updatePoints);
-router.patch("/:id/details", earningRuleController.updateDetails);
+// Create a rule for a specific collecto/vendor (frontend posts to /pointRules/:vendorId)
+router.post("/:collectoId", earningRuleController.createRule);
 
-// Status management routes
-router.patch("/:id/activate", earningRuleController.activateRule);
-router.patch("/:id/deactivate", earningRuleController.deactivateRule);
+// Delete route matching frontend's nested path
+router.delete("/:collectoId/pointRules/:ruleId", earningRuleController.deleteRule);
 
 export default router;
