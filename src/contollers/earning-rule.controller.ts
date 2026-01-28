@@ -337,9 +337,9 @@ export class EarningRuleController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const id = parseInt(req.params.id, 10);
+      const ruleId = parseInt(req.params.ruleId, 10);
 
-      if (isNaN(id)) {
+      if (isNaN(ruleId)) {
         res.status(400).json({
           success: false,
           error: "Invalid rule ID",
@@ -347,7 +347,7 @@ export class EarningRuleController {
         return;
       }
 
-      await this.earningRuleService.deleteRule(id);
+      await this.earningRuleService.deleteRule(ruleId);
 
       res.status(200).json({
         success: true,

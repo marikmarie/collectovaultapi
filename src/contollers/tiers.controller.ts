@@ -207,9 +207,9 @@ export class TierController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const id = parseInt(req.params.id, 10);
+      const tierId = parseInt(req.params.tierId, 10);
 
-      if (isNaN(id)) {
+      if (isNaN(tierId)) {
         res.status(400).json({
           success: false,
           error: "Invalid tier ID",
@@ -217,7 +217,7 @@ export class TierController {
         return;
       }
 
-      await this.tierService.deleteTier(id);
+      await this.tierService.deleteTier(tierId);
 
       res.status(200).json({
         success: true,

@@ -13,12 +13,13 @@ const tierController = new TierController(tierService);
 // Get tiers for a specific collecto/vendor
 router.get("/:collectoId", tierController.getTiersByCollectoId);
 
-// Get single tier by id
-router.get("/:id", tierController.getTierById);
-
+// Create a tier for a specific collecto/vendor
 router.post("/:collectoId", tierController.createTier);
 
-// Delete route matching frontend nested path
+// Update tier by id
+router.put("/:id", tierController.updateTier);
+
+// Delete tier for a vendor (nested path)
 router.delete("/:collectoId/:tierId", tierController.deleteTier);
 
 export default router;

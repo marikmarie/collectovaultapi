@@ -14,11 +14,11 @@ const vaultPackageController = new VaultPackageController(vaultPackageService);
 // Get packages for a specific collecto/vendor
 router.get("/:collectoId", vaultPackageController.getPackagesByCollectoId);
 
-// Get package by id
-router.get("/:id", vaultPackageController.getPackageById);
-
 // Create a package for a specific collecto/vendor
 router.post("/:collectoId", vaultPackageController.createPackage);
+
+// Update package by id
+router.put("/:id", vaultPackageController.updatePackage);
 
 // Delete package for a vendor (matches frontend path)
 router.delete("/:collectoId/:id", vaultPackageController.deletePackage);
