@@ -18,9 +18,9 @@ router.get("/:collectoId", vaultPackageController.getPackagesByCollectoId);
 router.get("/:id", vaultPackageController.getPackageById);
 
 // Create a package for a specific collecto/vendor
-router.post("/:collectoId/packages", vaultPackageController.createPackage);
+router.post("/:collectoId", vaultPackageController.createPackage);
 
 // Delete package for a vendor (matches frontend path)
-router.delete("/:collectoId/packages/:id", vaultPackageController.deletePackage);
+router.delete("/:collectoId/:id", vaultPackageController.deletePackage);
 
 export default router;

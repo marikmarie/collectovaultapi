@@ -21,6 +21,6 @@ router.get("/:id", earningRuleController.getRuleById);
 router.post("/:collectoId", earningRuleController.createRule);
 
 // Delete route matching frontend's nested path
-router.delete("/:collectoId/pointRules/:ruleId", earningRuleController.deleteRule);
+router.delete("/:collectoId/:ruleId", earningRuleController.deleteRule);
 
 export default router;

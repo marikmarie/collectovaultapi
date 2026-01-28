@@ -168,23 +168,70 @@ if (isCLIMode) {
         });
         break;
 
-      default:
-        const routers: any = {
-          tier: tierRouter,
-          vaultPackages: vaultPackageRouter,
-          pointRules: earningRuleRouter,
-          earningRules: earningRuleRouter,
-        };
+      // default:
+      //   const routers: any = {
+      //     tier: tierRouter,
+      //     vaultPackages: vaultPackageRouter,
+      //     pointRules: earningRuleRouter,
+      //     earningRules: earningRuleRouter,
+      //   };
 
-        if (routers[path]) {
-          mockReq.method = "GET";
-          const id = params[0];
-          mockReq.url = id ? `/${id}` : "/";
-          if (id) mockReq.params.id = id;
-          routers[path](mockReq, mockRes, () => {});
-        } else {
-          mockRes.status(404).json({ error: "Unknown path", path });
-        }
+      case "pointRules":
+    case "tier":
+    case "vaultPackages": {
+      const routers: any = {
+        pointRules: earningRuleRouter,
+        tier: tierRouter,
+        vaultPackages: vaultPackageRouter,
+      };
+      
+      const router = routers[path];
+      const firstParam = params[0];
+
+      if (firstParam && firstParam.startsWith("{")) {
+        // --- HANDLE SAVE (POST) ---
+        mockReq.method = "POST";
+        mockReq.body = JSON.parse(firstParam);
+        // Path should match your router.post("/:collectoId")
+        mockReq.url = `/${mockReq.body.collectoId || ""}`; 
+      } 
+      else if (firstParam === "DELETE") {
+        // --- HANDLE DELETE (DELETE) ---
+        // Expected CLI: node index.js pointRules DELETE <vendorId> <ruleId>
+        mockReq.method = "DELETE";
+        const vendorId = params[1];
+        const ruleId = params[2];
+        
+        // Match the nested paths in your router: /:collectoId/pointRules/:ruleId
+        const subPath = path === "vaultPackages" ? "packages" : path;
+        mockReq.url = `/${vendorId}/${subPath}/${ruleId}`;
+        mockReq.params = { collectoId: vendorId, ruleId, id: ruleId };
+      } 
+      else {
+        // --- HANDLE FETCH (GET) ---
+        mockReq.method = "GET";
+        const id = params[0];
+        mockReq.url = id ? `/${id}` : "/";
+        if (id) mockReq.params.id = id;
+      }
+
+      router(mockReq, mockRes, () => {
+        if (!responsesSent) mockRes.status(404).json({ error: `Route not found in ${path}` });
+      });
+      break;
+    }
+
+    default:
+      mockRes.status(404).json({ error: "Unknown path", path });
+        // if (routers[path]) {
+        //   mockReq.method = "GET";
+        //   const id = params[0];
+        //   mockReq.url = id ? `/${id}` : "/";
+        //   if (id) mockReq.params.id = id;
+        //   routers[path](mockReq, mockRes, () => {});
+        // } else {
+        //   mockRes.status(404).json({ error: "Unknown path", path });
+        // }
     }
   } catch (err: any) {
     realConsoleLog(JSON.stringify({ status: "error", message: err.message }));

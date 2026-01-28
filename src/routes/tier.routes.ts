@@ -16,10 +16,9 @@ router.get("/:collectoId", tierController.getTiersByCollectoId);
 // Get single tier by id
 router.get("/:id", tierController.getTierById);
 
-// Create a tier for a specific collecto/vendor
 router.post("/:collectoId", tierController.createTier);
 
 // Delete route matching frontend nested path
-router.delete("/:collectoId/tier/:tierId", tierController.deleteTier);
+router.delete("/:collectoId/:tierId", tierController.deleteTier);
 
 export default router;
