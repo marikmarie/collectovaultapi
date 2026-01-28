@@ -14,13 +14,13 @@ const earningRuleController = new EarningRuleController(earningRuleService);
 // Get rules for a specific collecto/vendor
 router.get("/:collectoId", earningRuleController.getRulesByCollectoId);
 
-// Create a rule for a specific collecto/vendor (frontend posts to /pointRules/:vendorId)
-router.post("/:collectoId", earningRuleController.createRule);
+// Create a rule for a specific collecto/vendor - explicit route
+router.post("/create/:collectoId", earningRuleController.createRule);
 
-// Update rule by id
-router.put("/:id", earningRuleController.updateRule);
+// Update rule by id - explicit route
+router.put("/update/:id", earningRuleController.updateRule);
 
-// Delete route matching frontend's nested path
-router.delete("/:collectoId/:ruleId", earningRuleController.deleteRule);
+// Delete route - explicit route
+router.delete("/delete/:collectoId/:ruleId", earningRuleController.deleteRule);
 
 export default router;
