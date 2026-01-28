@@ -223,15 +223,7 @@ if (isCLIMode) {
 
     default:
       mockRes.status(404).json({ error: "Unknown path", path });
-        // if (routers[path]) {
-        //   mockReq.method = "GET";
-        //   const id = params[0];
-        //   mockReq.url = id ? `/${id}` : "/";
-        //   if (id) mockReq.params.id = id;
-        //   routers[path](mockReq, mockRes, () => {});
-        // } else {
-        //   mockRes.status(404).json({ error: "Unknown path", path });
-        // }
+
     }
   } catch (err: any) {
     realConsoleLog(JSON.stringify({ status: "error", message: err.message }));

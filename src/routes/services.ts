@@ -54,7 +54,7 @@ router.post("/services", async (req: Request, res: Response) => {
     const { vaultOTPToken, collectoId, page } = req.body;
     const token = req.headers.authorization as string | undefined;
     const pageNumber = typeof page === "number" ? page : parseInt(page) || 1;
-
+    
     console.log(req.body);
     
     if (!collectoId && !vaultOTPToken) {
