@@ -10,7 +10,6 @@ const earningRuleRepository = new EarningRuleRepository();
 const earningRuleService = new EarningRuleService(earningRuleRepository);
 const earningRuleController = new EarningRuleController(earningRuleService);
 
-
 // Get rules for a specific collecto/vendor
 router.get("/:collectoId", earningRuleController.getRulesByCollectoId);
 

@@ -28,6 +28,7 @@ if (isCLIMode) {
 
   let responsesSent = false;
 
+
   const mockRes: any = {
     statusCode: 200,
     headers: {},
@@ -188,27 +189,46 @@ if (isCLIMode) {
       const router = routers[path];
       const firstParam = params[0];
 
-      if (firstParam && firstParam.startsWith("{")) {
-        // --- HANDLE SAVE (POST) ---
+      // --- HANDLE CREATE (POST with /create/collectoId) ---
+      if (firstParam === "create") {
+        mockReq.method = "POST";
+        const vendorId = params[1];
+        mockReq.body = params[2] ? JSON.parse(params[2]) : {};
+        mockReq.url = `/create/${vendorId}`;
+        mockReq.params = { collectoId: vendorId };
+      }
+      // --- HANDLE UPDATE (PUT with /update/id) ---
+      else if (firstParam === "update") {
+        mockReq.method = "PUT";
+        const id = params[1];
+        mockReq.body = params[2] ? JSON.parse(params[2]) : {};
+        mockReq.url = `/update/${id}`;
+        mockReq.params = { id };
+      }
+      // --- HANDLE DELETE (DELETE with /delete/vendorId/id) ---
+      else if (firstParam === "delete") {
+        mockReq.method = "DELETE";
+        const vendorId = params[1];
+        const id = params[2];
+        mockReq.url = `/delete/${vendorId}/${id}`;
+        mockReq.params = { collectoId: vendorId, id, tierId: id, ruleId: id };
+      }
+      // --- HANDLE SAVE (POST with old format) ---
+      else if (firstParam && firstParam.startsWith("{")) {
         mockReq.method = "POST";
         mockReq.body = JSON.parse(firstParam);
-        // Path should match your router.post("/:collectoId")
-        mockReq.url = `/${mockReq.body.collectoId || ""}`; 
+        mockReq.url = `/${mockReq.body.collectoId || ""}`;
       } 
+      // --- HANDLE DELETE (old format DELETE) ---
       else if (firstParam === "DELETE") {
-        // --- HANDLE DELETE (DELETE) ---
-        // Expected CLI: node index.js pointRules DELETE <vendorId> <ruleId>
         mockReq.method = "DELETE";
         const vendorId = params[1];
         const ruleId = params[2];
-        
-        // Match the nested paths in your router: /:collectoId/pointRules/:ruleId
-        const subPath = path === "vaultPackages" ? "packages" : path;
-        mockReq.url = `/${vendorId}/${subPath}/${ruleId}`;
-        mockReq.params = { collectoId: vendorId, ruleId, id: ruleId };
+        mockReq.url = `/delete/${vendorId}/${ruleId}`;
+        mockReq.params = { collectoId: vendorId, ruleId, id: ruleId, tierId: ruleId };
       } 
+      // --- HANDLE FETCH (GET) ---
       else {
-        // --- HANDLE FETCH (GET) ---
         mockReq.method = "GET";
         const id = params[0];
         mockReq.url = id ? `/${id}` : "/";
