@@ -162,22 +162,15 @@ if (isCLIMode) {
         mockReq.method = "GET";
         const customerAction = params[0]; 
         const clientId = params[1];
-        mockReq.url = `/${customerAction}/info/${clientId}`;
+        mockReq.url = `/info/${clientId}`;
         mockReq.params = { clientId };
         CustomerRoutes()(mockReq, mockRes, () => {
            if (!responsesSent) mockRes.status(404).json({ error: "Customer route not found" });
         });
         break;
 
-      // default:
-      //   const routers: any = {
-      //     tier: tierRouter,
-      //     vaultPackages: vaultPackageRouter,
-      //     pointRules: earningRuleRouter,
-      //     earningRules: earningRuleRouter,
-      //   };
 
-      case "pointRules":
+    case "pointRules":
     case "tier":
     case "vaultPackages": {
       const routers: any = {
