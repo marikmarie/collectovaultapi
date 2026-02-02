@@ -225,7 +225,7 @@ if (isCLIMode) {
         mockReq.method = "GET";
         const id = params[0];
         mockReq.url = id ? `/${id}` : "/";
-        if (id) mockReq.params.id = id;
+        if (id) mockReq.params = { id, collectoId: id };
       }
 
       router(mockReq, mockRes, () => {

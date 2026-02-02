@@ -19,6 +19,9 @@ router.put("/update/:id", earningRuleController.updateRule);
 // Delete route - explicit route
 router.delete("/delete/:collectoId/:ruleId", earningRuleController.deleteRule);
 
+// Get rule by id or rules by collectoId (must be before generic /:collectoId for server mode)
+router.get("/:id", earningRuleController.getRuleById);
+
 // Get rules for a specific collecto/vendor (MUST be last, matches any single param)
 router.get("/:collectoId", earningRuleController.getRulesByCollectoId);
 
