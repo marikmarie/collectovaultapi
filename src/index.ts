@@ -203,7 +203,7 @@ if (isCLIMode) {
         mockReq.method = "DELETE";
         const vendorId = params[1];
         const id = params[2];
-        mockReq.url = `/delete/${vendorId}/${id}`;
+        mockReq.url = `/delete/${id}`;
         mockReq.params = { collectoId: vendorId, id, tierId: id, ruleId: id };
       }
       // --- HANDLE SAVE (POST with old format) ---
@@ -217,7 +217,7 @@ if (isCLIMode) {
         mockReq.method = "DELETE";
         const vendorId = params[1];
         const ruleId = params[2];
-        mockReq.url = `/delete/${vendorId}/${ruleId}`;
+        mockReq.url = `/delete/${ruleId}`;
         mockReq.params = { collectoId: vendorId, ruleId, id: ruleId, tierId: ruleId };
       } 
       // --- HANDLE FETCH (GET) ---
