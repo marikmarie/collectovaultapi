@@ -132,9 +132,16 @@ async function processInvoicesForPoints(
   }
 
   const invoiceList = response.data.data;
+  
+  // Fetch active earning rules for this specific client/vendor
   const earningRules = await earningRuleRepository.findActive(collectoId);
 
-  // Find "Make Purchase" or "transaction" type earning rule
+  if (!earningRules || earningRules.length === 0) {
+    console.log(`No active earning rules configured for client ${collectoId}`);
+    return;
+  }
+
+  // Find "Make Purchase" or "transaction" type earning rule for this client
   const purchaseRule = earningRules.find(
     (rule) =>
       rule.ruleTitle.toLowerCase().includes("make purchase") ||
@@ -142,11 +149,11 @@ async function processInvoicesForPoints(
   );
 
   if (!purchaseRule) {
-    console.log("No 'Make Purchase' or 'transaction' earning rule found");
+    console.log(`No purchase/transaction earning rule found for client ${collectoId}. Available rules: ${earningRules.map(r => `${r.id}:${r.ruleTitle}`).join(", ")}`);
     return;
   }
 
-  console.log(`Using earning rule: ${purchaseRule.ruleTitle} with ${purchaseRule.points} points`);
+  console.log(`Client ${collectoId}: Using earning rule ID ${purchaseRule.id} (${purchaseRule.ruleTitle}) with ${purchaseRule.points} points`);
 
   for (const invoice of invoiceList) {
     try {
@@ -205,7 +212,7 @@ async function processInvoicesForPoints(
       }
 
       console.log(
-        `Invoice ${invoiceId} processed: Customer ${customer.id} earned ${pointsEarned} points`
+        `Invoice ${invoiceId} processed for client ${collectoId}: Customer ${customer.id} earned ${pointsEarned} points using rule ID ${purchaseRule.id}`
       );
     } catch (invoiceErr: any) {
       console.error(
