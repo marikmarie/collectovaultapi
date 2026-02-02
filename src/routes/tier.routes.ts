@@ -17,7 +17,7 @@ router.post("/create/:collectoId", tierController.createTier);
 router.put("/update/:id", tierController.updateTier);
 
 // Delete tier for a vendor - explicit route
-router.delete("/delete/:collectoId/:tierId", tierController.deleteTier);
+router.delete("/delete/:tierId", tierController.deleteTier);
 
 // Get tier by id or tiers by collectoId (must be before generic /:collectoId for server mode)
 router.get("/:id", tierController.getTierById);
