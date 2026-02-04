@@ -97,8 +97,36 @@ export class CustomerController {
   };
 
   /**
+   * 
+   AdminDashboardStats
+  totalUsers: number;
+  totalPointsIssued: number;
+  topTierMembers: number;
+  packageRevenue: string;
+   */
+
+  AdminDashboardStats = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const stats = await this.customerService.getAllClientDetails("all");
+      console.log("Admin Dashboard Stats fetched:", stats);
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    }
+    catch (err) {
+      next(err);
+    }
+  };
+  /**
    * Create a new customer
    */
+
+
   createCustomer = async (
     req: Request,
     res: Response,
@@ -163,100 +191,7 @@ export class CustomerController {
     }
   };
 
-  /**
-   * Process invoice/payment and update customer points
-   */
-  processInvoicePayment = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
-    try {
-      const { collectoId, clientId, amount, invoiceId, ruleId } = req.body;
 
-      if (!collectoId || !clientId || !amount) {
-        res.status(400).json({
-          success: false,
-          error: "collectoId, clientId, and amount are required",
-        });
-        return;
-      }
-
-      if (amount <= 0) {
-        res.status(400).json({
-          success: false,
-          error: "amount must be greater than 0",
-        });
-        return;
-      }
-
-      const customer = await this.customerService.processInvoicePayment(collectoId, clientId, {
-        amount,
-        invoiceId,
-        ruleId,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "Invoice payment processed successfully",
-        data: customer,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  /**
-   * Purchase points
-   */
-  purchasePoints = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
-    try {
-      const customerId = parseInt(req.params.customerId, 10);
-      const { pointsToPurchase, amount } = req.body;
-
-      if (isNaN(customerId)) {
-        res.status(400).json({
-          success: false,
-          error: "Invalid customer ID",
-        });
-        return;
-      }
-
-      if (!pointsToPurchase || !amount) {
-        res.status(400).json({
-          success: false,
-          error: "pointsToPurchase and amount are required",
-        });
-        return;
-      }
-
-      if (pointsToPurchase <= 0 || amount <= 0) {
-        res.status(400).json({
-          success: false,
-          error: "pointsToPurchase and amount must be greater than 0",
-        });
-        return;
-      }
-
-      const customer = await this.customerService.purchasePoints(
-        customerId,
-        pointsToPurchase,
-        amount
-      );
-
-      res.status(200).json({
-        success: true,
-        message: "Points purchased successfully",
-        data: customer,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
 
 
   getCustomerStats = async (

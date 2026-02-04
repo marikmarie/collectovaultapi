@@ -4,6 +4,7 @@ import { CustomerService } from "../services/customer.service";
 import { CustomerRepository } from "../repositories/customer.repository";
 import { TierRepository } from "../repositories/tier.repository";
 import { EarningRuleRepository } from "../repositories/earning-rule.repository";
+import { TransactionRepository } from "../repositories/transaction.repository";
 
 export const CustomerRoutes = (): Router => {
   const router = Router();
@@ -12,15 +13,19 @@ export const CustomerRoutes = (): Router => {
   const customerRepository = new CustomerRepository();
   const tierRepository = new TierRepository();
   const earningRuleRepository = new EarningRuleRepository();
+  const tranRepo = new TransactionRepository();
   const customerService = new CustomerService(
     customerRepository,
     tierRepository,
-    earningRuleRepository
+    earningRuleRepository,
+    tranRepo
   );
 
   const customerController = new CustomerController(customerService);
 
   router.get("/", customerController.getAllCustomers);
+
+  router.get("/dashboard", customerController.AdminDashboardStats);
 
   router.get("/info/:clientId", async (req, res) => {
     try {
@@ -32,8 +37,6 @@ export const CustomerRoutes = (): Router => {
           message: "clientId is required",
         });
       }
-
-      
 
       console.log("Fetching customer info for clientId:", clientId, "collectoId:", collectoId);
       
