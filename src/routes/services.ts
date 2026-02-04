@@ -27,6 +27,7 @@ const customerService = new CustomerService(
   customerRepository,
   tierRepository,
   earningRuleRepository,
+  transactionRepository,
 );
 
 

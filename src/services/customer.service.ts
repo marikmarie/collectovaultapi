@@ -3,8 +3,6 @@ import { TierRepository } from "../repositories/tier.repository";
 import { EarningRuleRepository } from "../repositories/earning-rule.repository";
 import { Customer } from "../models/Customer.model";
 import { TransactionRepository } from "../repositories/transaction.repository"; 
-import { Tier } from "../models/Tier.model";
-import axios from "axios";
 
 export interface CreateCustomerDTO {
   collectoId: string;
