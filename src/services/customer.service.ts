@@ -194,5 +194,39 @@ export class CustomerService {
       throw error;
     }
   }
+
+  /**
+   * Get tier information by tier ID
+   */
+  async getTierInfo(tierId: number | null) {
+    if (!tierId) {
+      return null;
+    }
+    const tier = await this.tierRepository.findById(tierId);
+    if (!tier) {
+      return null;
+    }
+    return {
+      id: tier.id,
+      name: tier.name,
+      pointsRequired: tier.pointsRequired,
+      earningMultiplier: tier.earningMultiplier,
+      isActive: tier.isActive,
+    };
+  }
+
+  /**
+   * Get all active tiers
+   */
+  async getAllTiers() {
+    const allTiers = await this.tierRepository.findAll(false);
+    return allTiers.map((tier) => ({
+      id: tier.id,
+      name: tier.name,
+      pointsRequired: tier.pointsRequired,
+      earningMultiplier: tier.earningMultiplier,
+      isActive: tier.isActive,
+    }));
+  }
   
 }

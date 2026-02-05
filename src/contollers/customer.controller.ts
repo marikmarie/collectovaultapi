@@ -97,6 +97,61 @@ export class CustomerController {
   };
 
   /**
+   * Get customer info by clientId (with tier details)
+   */
+  getCustomerInfo = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const clientId = req.params.clientId;
+      const collectoId = req.query.collectoId as string | undefined;
+
+      if (!clientId) {
+        res.status(400).json({
+          success: false,
+          message: "clientId is required",
+        });
+        return;
+      }
+
+      const customer = await this.customerService.getCustomerByClientId(clientId, collectoId);
+
+      if (!customer) {
+        res.status(404).json({
+          success: false,
+          message: "Customer not found",
+        });
+        return;
+      }
+
+      // Get current tier and all tiers info
+      const tierInfo = await this.customerService.getTierInfo(customer.currentTierId);
+      const allTiers = await this.customerService.getAllTiers();
+
+      res.status(200).json({
+        success: true,
+        customer: {
+          id: customer.id,
+          collectoId: customer.collectoId,
+          clientId: customer.clientId,
+          name: customer.name,
+          currentPoints: customer.currentPoints,
+          earnedPoints: customer.earnedPoints,
+          boughtPoints: customer.boughtPoints,
+          totalPurchased: customer.totalPurchased,
+          isActive: customer.isActive,
+        },
+        currentTier: tierInfo,
+        tiers: allTiers,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
    * 
    AdminDashboardStats
   totalUsers: number;
