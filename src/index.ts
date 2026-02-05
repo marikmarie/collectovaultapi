@@ -169,6 +169,15 @@ if (isCLIMode) {
         });
         break;
 
+      case "admin":
+        mockReq.method = "GET";
+        const adminAction = params[0];
+        mockReq.url = `/${adminAction}`;
+        mockReq.params = {};
+        CustomerRoutes()(mockReq, mockRes, () => {
+          if (!responsesSent) mockRes.status(404).json({ error: "Admin route not found" });
+        });
+        break;
 
     case "pointRules":
     case "tier":
