@@ -152,22 +152,27 @@ export class CustomerController {
   };
 
   /**
-   * 
-   AdminDashboardStats
-  totalUsers: number;
-  totalPointsIssued: number;
-  topTierMembers: number;
-  packageRevenue: string;
+   * Get admin dashboard stats for a specific collectoId
+   * Returns: totalUsers, totalPointsIssued, topTierMembers, packageRevenue
    */
-
   AdminDashboardStats = async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const stats = await this.customerService.getAllClientDetails("all");
-      console.log("Admin Dashboard Stats fetched:", stats);
+      const collectoId = req.query.collectoId as string | undefined;
+      
+      if (!collectoId) {
+        res.status(400).json({
+          success: false,
+          message: "collectoId query parameter is required",
+        });
+        return;
+      }
+
+      const stats = await this.customerService.getAllClientDetails(collectoId);
+      console.log("Admin Dashboard Stats fetched for collectoId:", collectoId, stats);
       res.status(200).json({
         success: true,
         data: stats,

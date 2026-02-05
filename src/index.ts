@@ -172,8 +172,9 @@ if (isCLIMode) {
       case "admin":
         mockReq.method = "GET";
         const adminAction = params[0];
+        const collectoIdParam = params[1];
         mockReq.url = `/${adminAction}`;
-        mockReq.params = {};
+        mockReq.query = { collectoId: collectoIdParam || "all" };
         CustomerRoutes()(mockReq, mockRes, () => {
           if (!responsesSent) mockRes.status(404).json({ error: "Admin route not found" });
         });
