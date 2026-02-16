@@ -35,21 +35,25 @@ export class CustomerRepository {
     );
   }
 
+async findAll(collectoId?: string): Promise<Customer[]> {
+  let query = "SELECT * FROM vault_customers WHERE is_active = TRUE";
+  const params: any[] = [];
 
-  async findAll(collectoId?: string): Promise<Customer[]> {
-    let query = "SELECT * FROM vault_customers WHERE is_active = TRUE";
-    const params: any[] = [];
+  if (collectoId && collectoId.trim() !== "") {
+    query += " AND collecto_id = ?";
+    params.push(collectoId.trim());
+  }
 
-    if (collectoId) {
-      query += " AND collecto_id = ?";
-      params.push(collectoId);
-    }
+  query += " ORDER BY created_at DESC";
 
-    query += " ORDER BY created_at DESC";
-
+  try {
     const [rows] = await pool.query<CustomerRow[]>(query, params);
     return rows.map((row) => this.mapRowToCustomer(row));
+  } catch (error) {
+    console.error("Database error in findAll:", error);
+    throw error;
   }
+}
 
   async findById(id: number): Promise<Customer | null> {
     const [rows] = await pool.query<CustomerRow[]>(

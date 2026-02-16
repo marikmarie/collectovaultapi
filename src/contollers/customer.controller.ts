@@ -15,6 +15,7 @@ export class CustomerController {
     try {
       const collectoId = req.query.collectoId as string | undefined;
 
+      console.log("getAllCustomers called with collectoId:", collectoId);
       if (!collectoId) {
         res.status(400).json({
           success: false,

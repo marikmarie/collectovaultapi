@@ -23,11 +23,11 @@ export const CustomerRoutes = (): Router => {
 
   const customerController = new CustomerController(customerService);
 
-  router.get("/", customerController.getAllCustomers);
+  router.get("/all", customerController.getAllCustomers);
 
   router.get("/dashboard", customerController.AdminDashboardStats);
-
-  router.get("/info/:clientId", customerController.getCustomerInfo);
+  
+  router.get("/", customerController.getAllCustomers);
 
   router.get("/client/:clientId", customerController.getCustomerByClientId);
   router.get("/:id", customerController.getCustomerById);
