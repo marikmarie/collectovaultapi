@@ -168,7 +168,6 @@ export class CustomerService {
   async getAllClientDetails(collectoId: string): Promise<any> {
     try {
       // Fetch all customers for the given collectoId
-      console.log("Fetching client details for collectoId:", collectoId);
       const customers = await this.customerRepository.findByCollectoId(collectoId);
       const totalUsers = customers.length;
       const totalPointsIssued = customers.reduce((sum, c) => sum + c.earnedPoints, 0);
