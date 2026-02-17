@@ -180,17 +180,6 @@ if (isCLIMode) {
         });
         break;
 
-         case "users":
-        mockReq.method = "GET";
-        const user = params[0];
-        const collectoId = params[1];
-        mockReq.url = `/${user}`;
-        mockReq.query = { collectoId: collectoId || "all" };
-        CustomerRoutes()(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "User route not found" });
-        });
-        break;
-
     case "pointRules":
     case "tier":
     case "vaultPackages": {
@@ -203,7 +192,7 @@ if (isCLIMode) {
       const router = routers[path];
       const firstParam = params[0];
 
-      // --- HANDLE CREATE (POST with /create/collectoId) ---
+    
       if (firstParam === "create") {
         mockReq.method = "POST";
         const vendorId = params[1];
@@ -211,7 +200,6 @@ if (isCLIMode) {
         mockReq.url = `/create/${vendorId}`;
         mockReq.params = { collectoId: vendorId };
       }
-      // --- HANDLE UPDATE (PUT with /update/id) ---
       else if (firstParam === "update") {
         mockReq.method = "PUT";
         const id = params[1];
@@ -241,7 +229,6 @@ if (isCLIMode) {
         mockReq.url = `/delete/${ruleId}`;
         mockReq.params = { collectoId: vendorId, ruleId, id: ruleId, tierId: ruleId };
       } 
-      // --- HANDLE FETCH (GET) ---
       else {
         mockReq.method = "GET";
         const id = params[0];
@@ -264,33 +251,36 @@ if (isCLIMode) {
     process.exit(1);
   }
 } else {
-  // HTTP Server Mode
+  // Server Mode
   const app = express();
-  const PORT = process.env.PORT || 5000;
-
-  // Middleware
   app.use(cors());
   app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
 
-  // Routes
-  app.use("/collecto-vault-api", collectoRouter);
-  app.use("/collecto-vault-api", servicesRouter);
-  app.use("/collecto-vault-api/tier", tierRouter);
-  app.use("/collecto-vault-api/vaultPackages", vaultPackageRouter);
-  app.use("/collecto-vault-api/pointRules", earningRuleRouter);
-  app.use("/collecto-vault-api/customers", CustomerRoutes());
+  app.use("/customers", CustomerRoutes());
+  app.use("/admin", CustomerRoutes());
+  app.use("/tier", tierRouter);
+  app.use("/vaultPackages", vaultPackageRouter);
+  app.use("/pointRules", earningRuleRouter);
+  
+  // Mounted at root so internal routes like router.post("/services") work as /services
+  app.use("/", servicesRouter);
+  app.use("/", collectoRouter);
 
-  // Error handling
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err);
-    res.status(err.statusCode || 500).json({ error: err.message || "Internal server error" });
+  // 404 handler for unmatched routes
+  app.use((req: any, res: any) => {
+    res.status(404).json({ error: "Route not found", path: req.path, method: req.method });
   });
 
-  // Start server
-  app.listen(PORT, () => {
-    console.log(`CollectoVault API server running on port ${PORT}`);
+  // Error handling middleware (MUST be last)
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Error:", err);
+    res.status(err.status || 500).json({
+      error: err.message,
+      status: err.status || 500
+    });
   });
+
+  app.listen(process.env.PORT || 4000);
 }
 
 function parseInputData(args: string[]): Record<string, any> {
