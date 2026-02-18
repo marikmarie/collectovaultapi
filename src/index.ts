@@ -7,10 +7,8 @@ import tierRouter from "./routes/tier.routes";
 import vaultPackageRouter from "./routes/vault-package.routes";
 import earningRuleRouter from "./routes/earning-rule.routes";
 import { CustomerRoutes } from "./routes/customer.routes";
-import { url } from "inspector";
 
 dotenv.config();
-
 
 const isCLIMode = !process.env.PORT || process.argv.length > 2;
 
@@ -20,115 +18,329 @@ if (isCLIMode) {
   console.error = () => {};
 
   const args = process.argv.slice(2);
-  const mainPath = args[0] || "";
-  const subPath = args[1] || "";
-  const otherParams = args.slice(2);
+  const path = args[0];
+  const params = args.slice(1);
 
   const timeout = setTimeout(() => {
     realConsoleLog(
-      JSON.stringify({ status: "error", message: "Execution timeout" })
+      JSON.stringify({ status: "error", message: "Execution timeout" }),
     );
     process.exit(1);
   }, 10000);
 
+  let responsesSent = false;
+
+  const mockRes: any = {
+    statusCode: 200,
+    headers: {},
+    json: (data: any) => {
+      if (responsesSent) return;
+      responsesSent = true;
+      clearTimeout(timeout);
+      realConsoleLog(JSON.stringify(data));
+      process.exit(0);
+    },
+    send: (data: any) => {
+      if (responsesSent) return;
+      responsesSent = true;
+      clearTimeout(timeout);
+      realConsoleLog(typeof data === "object" ? JSON.stringify(data) : data);
+      process.exit(0);
+    },
+    status: (code: number) => {
+      mockRes.statusCode = code;
+      return mockRes;
+    },
+    setHeader: (name: string, value: string) => {
+      mockRes.headers[name] = value;
+      return mockRes;
+    },
+    get: (name: string) => mockRes.headers[name],
+    end: () => {
+      if (!responsesSent) process.exit(0);
+    },
+  };
+
+  const mockReq: any = {
+    url: "/",
+    method: "GET",
+    params: {},
+    query: {},
+    body: {},
+    headers: { "content-type": "application/json" },
+    header: (name: string) => mockReq.headers[name.toLowerCase()],
+    get: (name: string) => mockReq.headers[name.toLowerCase()],
+  };
+
   try {
-    const app = express();
-    app.use(express.json());
+    switch (path) {
+      // --- Auth Routes ---
+      case "auth":
+        mockReq.method = "POST";
+        mockReq.url = "/auth";
+        mockReq.body = parseInputData(params);
+        collectoRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth route not found" });
+        });
+        break;
 
-    // Mount EXACTLY like server mode
-    app.use("/customers", CustomerRoutes());
-    app.use("/admin", CustomerRoutes());
-    app.use("/tier", tierRouter);
-    app.use("/vaultPackages", vaultPackageRouter);
-    app.use("/pointRules", earningRuleRouter);
-    app.use("/", servicesRouter);
-    app.use("/", collectoRouter);
+      case "authVerify":
+        mockReq.method = "POST";
+        mockReq.url = "/authVerify";
+        mockReq.body = parseInputData(params);
+        collectoRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth verify route not found" });
+        });
+        break;
 
-    // Determine HTTP method
-    let method = "GET";
+      case "authCollecto":
+        mockReq.method = "POST";
+        mockReq.url = "/auth";
+        mockReq.body = parseInputData(params);
+        collectoRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth route not found" });
+        });
+        break;
 
-    if (subPath === "create") method = "POST";
-    else if (subPath === "update") method = "PUT";
-    else if (subPath === "delete") method = "DELETE";
+      // --- Services Routes ---
+      case "services":
+        mockReq.method = "POST";
+        mockReq.url = "/services";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Service route not found" });
+        });
+        break;
 
-    // Extract JSON body if present
-    let body: any = {};
-    if (
-      otherParams.length > 0 &&
-      otherParams[otherParams.length - 1].startsWith("{")
-    ) {
-      body = JSON.parse(otherParams.pop() as string);
-    }
+      case "invoiceDetails":
+        mockReq.method = "POST";
+        mockReq.url = "/invoiceDetails";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Invoice details route not found" });
+        });
+        break;
 
-    const fullPath =
-      "/" +
-      [mainPath, subPath, ...otherParams]
-        .filter(Boolean)
-        .join("/");
+      case "requestToPay":
+        mockReq.method = "POST";
+        mockReq.url = "/requestToPay";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Request to pay route not found" });
+        });
+        break;
 
-    // 🔥 Create a real HTTP server internally
-    const server = app.listen(0, async () => {
-      const port = (server.address() as any).port;
+      case "requestToPayStatus":
+        mockReq.method = "POST";
+        mockReq.url = "/requestToPayStatus";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Payment status route not found" });
+        });
+        break;
 
-      const http = await import("http");
+      case "verifyPhoneNumber":
+        mockReq.method = "POST";
+        mockReq.url = "/verifyPhoneNumber";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Verify phone route not found" });
+        });
+        break;
 
-      const options = {
-        hostname: "127.0.0.1",
-        port,
-        path: fullPath,
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
+      case "invoice":
+        mockReq.method = "POST";
+        mockReq.url = "/invoice";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Service route not found" });
+        });
+        break;
 
-      const req = http.request(options, (res) => {
-        let data = "";
+      case "transactions":
+        mockReq.method = "POST";
+        mockReq.url = "/transactions";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Transaction route not found" });
+        });
+        break;
 
-        res.on("data", (chunk) => {
-          data += chunk;
+      case "customers":
+        mockReq.method = "GET";
+        const customerAction = params[0];
+        const clientId = params[1];
+        mockReq.url = `/info/${clientId}`;
+        mockReq.params = { clientId };
+        CustomerRoutes()(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Customer route not found" });
+        });
+        break;
+
+      case "admin":
+        mockReq.method = "GET";
+        const adminAction = params[0];
+        const collectoIdParam = params[1];
+        mockReq.url = `/${adminAction}`;
+        mockReq.query = { collectoId: collectoIdParam || "all" };
+        CustomerRoutes()(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Admin route not found" });
+        });
+        break;
+
+        case "vaultPackages":
+        mockReq.method = "GET";
+        const [p1, p2] = params;
+        if (!isNaN(Number(p1))) {
+          // Request like /vaultPackages/141122 (only collectoId was passed)
+          mockReq.url = "/vaultPackages";
+          mockReq.query = { collectoId: p1 };
+        } else {
+          // Request like /vaultPackages or /vaultPackages/:collectoId
+          const vaultAction = p1;
+          const vaultParam = p2;
+          mockReq.url = `/${vaultAction}`;
+          mockReq.query = { collectoId: vaultParam || "all" };
+        }
+        vaultPackageRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Vault packages route not found" });
+        });
+        break;
+
+        case "pointRules":
+        mockReq.method = "GET";
+        mockReq.url = "/pointRules";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Transaction route not found" });
+        });
+        break;
+
+      case "pointRules":
+      //case "vaultPackages":
+      case "tier": {
+        const routers: any = {
+          pointRules: earningRuleRouter,
+          tier: tierRouter,
+          vaultPackages: vaultPackageRouter,
+        };
+
+        const router = routers[path];
+
+        const tryParse = (v: string) => {
+          try {
+            return JSON.parse(v);
+          } catch {
+            return undefined;
+          }
+        };
+
+        let urlParams = [...params];
+        const last = urlParams[urlParams.length - 1];
+        const parsedBody = tryParse(last);
+
+        if (parsedBody !== undefined) {
+          mockReq.body = parsedBody;
+          urlParams = urlParams.slice(0, -1);
+        } else {
+          mockReq.body = {};
+        }
+
+        const action = urlParams[0];
+
+        // ---------- CREATE ----------
+        if (action === "create") {
+          mockReq.method = "POST";
+          const collectoId = urlParams[1];
+          mockReq.url = `/${path}/create/${collectoId}`;
+          mockReq.params = { collectoId };
+        }
+
+        // ---------- UPDATE ----------
+        else if (action === "update") {
+          mockReq.method = "PUT";
+          const id = urlParams[1];
+          mockReq.url = `/${path}/update/${id}`;
+          mockReq.params = { id };
+        }
+
+        // ---------- DELETE ----------
+        else if (action === "delete") {
+          mockReq.method = "DELETE";
+
+          if (path === "tier") {
+            const tierId = urlParams[1];
+            mockReq.url = `/tier/delete/${tierId}`;
+            mockReq.params = { tierId };
+          } else if (path === "pointRules") {
+            const collectoId = urlParams[1];
+            const ruleId = urlParams[2];
+            mockReq.url = `/pointRules/delete/${collectoId}/${ruleId}`;
+            mockReq.params = { collectoId, ruleId };
+          } else {
+            const collectoId = urlParams[1];
+            const id = urlParams[2];
+            mockReq.url = `/vaultPackages/delete/${collectoId}/${id}`;
+            mockReq.params = { collectoId, id };
+          }
+        }
+
+        // ---------- GET ----------
+        else {
+          mockReq.method = "GET";
+          const id = urlParams[0];
+          mockReq.url = id ? `/${path}/${id}` : `/${path}`;
+          if (id) mockReq.params = { id, collectoId: id };
+        }
+
+        router(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: `Route not found in ${path}` });
         });
 
-        res.on("end", () => {
-          clearTimeout(timeout);
-          realConsoleLog(data);
-          server.close();
-          process.exit(0);
-        });
-      });
-
-      req.on("error", (err) => {
-        clearTimeout(timeout);
-        realConsoleLog(
-          JSON.stringify({ status: "error", message: err.message })
-        );
-        server.close();
-        process.exit(1);
-      });
-
-      if (method !== "GET" && Object.keys(body).length > 0) {
-        req.write(JSON.stringify(body));
+        break;
       }
 
-      req.end();
-    });
+      default:
+        mockRes.status(404).json({ error: "Unknown path", path });
+    }
   } catch (err: any) {
-    realConsoleLog(
-      JSON.stringify({ status: "error", message: err.message })
-    );
+    realConsoleLog(JSON.stringify({ status: "error", message: err.message }));
     process.exit(1);
   }
-}
-else {
+} else {
+  // Server Mode
   const app = express();
   app.use(cors());
   app.use(express.json());
 
   app.use("/customers", CustomerRoutes());
   app.use("/admin", CustomerRoutes());
-  app.use("/tier", tierRouter);
-  app.use("/vaultPackages", vaultPackageRouter);
-  app.use("/pointRules", earningRuleRouter);
+  app.use("/", tierRouter);
+  app.use("/", vaultPackageRouter);
+  app.use("/", earningRuleRouter);
+
+  // Mounted at root so internal routes like router.post("/services") work as /services
   app.use("/", servicesRouter);
   app.use("/", collectoRouter);
 
