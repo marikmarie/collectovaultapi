@@ -21,6 +21,6 @@ router.delete("/vaultPackages/delete/:collectoId/:id", vaultPackageController.de
 
 // Get package by id or packages by collectoId
 // The controller handles both cases: if numeric, fetch by ID; otherwise treat as collectoId
-router.get("/vaultPackages", vaultPackageController.getPackageById);
+router.get("/:id", vaultPackageController.getPackageById);
 
 export default router;

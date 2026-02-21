@@ -12,6 +12,7 @@ export interface CreateCustomerDTO {
 
 export interface UpdateCustomerDTO {
   name?: string;
+  username?: string;
 }
 
 export interface InvoicePaymentData {
@@ -48,6 +49,42 @@ export class CustomerService {
       throw new Error(`Customer with clientId ${clientId} not found`);
     }
     return customer;
+  }
+
+  async getCustomerByUsername(username: string): Promise<Customer> {
+    const customer = await this.customerRepository.findByUsername(username);
+    if (!customer) {
+      throw new Error(`Customer with username ${username} not found`);
+    }
+    return customer;
+  }
+
+  async setUsername(clientId: string, username: string, collectoId?: string): Promise<Customer> {
+    // Validate username format
+    if (!username || username.trim().length === 0) {
+      throw new Error("Username cannot be empty");
+    }
+
+    if (username.length < 3 || username.length > 100) {
+      throw new Error("Username must be between 3 and 100 characters");
+    }
+
+    // Check if username already exists
+    const existingWithUsername = await this.customerRepository.findByUsername(username);
+    if (existingWithUsername) {
+      throw new Error("Username already taken");
+    }
+
+    // Find customer by clientId
+    const customer = await this.customerRepository.findByClientId(clientId, collectoId);
+    if (!customer) {
+      throw new Error(`Customer with clientId ${clientId} not found. Please login first.`);
+    }
+
+    // Update customer with username
+    return this.customerRepository.update(customer.id, {
+      username: username.trim(),
+    }) as Promise<Customer>;
   }
 
   async getOrCreateCustomer(

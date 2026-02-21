@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import servicesRouter from "./routes/services";
-import collectoRouter from "./routes/authCollecto";
+import { authCollectoRoutes } from "./routes/authCollecto";
 import tierRouter from "./routes/tier.routes";
 import vaultPackageRouter from "./routes/vault-package.routes";
 import earningRuleRouter from "./routes/earning-rule.routes";
@@ -79,7 +79,27 @@ if (isCLIMode) {
         mockReq.method = "POST";
         mockReq.url = "/auth";
         mockReq.body = parseInputData(params);
-        collectoRouter(mockReq, mockRes, () => {
+        authCollectoRoutes()(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth route not found" });
+        });
+        break;
+
+        case "getByUsername":
+        mockReq.method = "POST";
+        mockReq.url = "/getByUsername";
+        mockReq.body = parseInputData(params);
+        authCollectoRoutes()(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth route not found" });
+        });
+        break;
+
+        case "setUsername":
+        mockReq.method = "POST";
+        mockReq.url = "/setUsername";
+        mockReq.body = parseInputData(params);
+        authCollectoRoutes()(mockReq, mockRes, () => {
           if (!responsesSent)
             mockRes.status(404).json({ error: "Auth route not found" });
         });
@@ -89,7 +109,7 @@ if (isCLIMode) {
         mockReq.method = "POST";
         mockReq.url = "/authVerify";
         mockReq.body = parseInputData(params);
-        collectoRouter(mockReq, mockRes, () => {
+        authCollectoRoutes()(mockReq, mockRes, () => {
           if (!responsesSent)
             mockRes.status(404).json({ error: "Auth verify route not found" });
         });
@@ -99,7 +119,7 @@ if (isCLIMode) {
         mockReq.method = "POST";
         mockReq.url = "/auth";
         mockReq.body = parseInputData(params);
-        collectoRouter(mockReq, mockRes, () => {
+        authCollectoRoutes()(mockReq, mockRes, () => {
           if (!responsesSent)
             mockRes.status(404).json({ error: "Auth route not found" });
         });
@@ -206,7 +226,7 @@ if (isCLIMode) {
         });
         break;
 
-        case "vaultPackages":
+      case "vaultPackages":
         mockReq.method = "GET";
         const [p1, p2] = params;
         if (!isNaN(Number(p1))) {
@@ -222,11 +242,13 @@ if (isCLIMode) {
         }
         vaultPackageRouter(mockReq, mockRes, () => {
           if (!responsesSent)
-            mockRes.status(404).json({ error: "Vault packages route not found" });
+            mockRes
+              .status(404)
+              .json({ error: "Vault packages route not found" });
         });
         break;
 
-        case "pointRules":
+      case "pointRules":
         mockReq.method = "GET";
         mockReq.url = "/pointRules";
         mockReq.body = parseInputData(params);
@@ -342,7 +364,7 @@ if (isCLIMode) {
 
   // Mounted at root so internal routes like router.post("/services") work as /services
   app.use("/", servicesRouter);
-  app.use("/", collectoRouter);
+  app.use("/", authCollectoRoutes());
 
   app.listen(process.env.PORT || 4000);
 }

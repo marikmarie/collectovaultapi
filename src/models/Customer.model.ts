@@ -3,6 +3,7 @@ export class Customer {
     public readonly id: number,
     public collectoId: string,
     public clientId: string,
+    public username: string | null,
     public name: string,
     // currentPoints remains total points (earned + bought)
     public currentPoints: number,

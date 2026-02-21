@@ -11,16 +11,16 @@ const earningRuleService = new EarningRuleService(earningRuleRepository);
 const earningRuleController = new EarningRuleController(earningRuleService);
 
 // Create a rule for a specific collecto/vendor - explicit route (MUST be before generic /:collectoId)
-router.post("/pointRules/create/:collectoId", earningRuleController.createRule);
+router.post("/create/:collectoId", earningRuleController.createRule);
 
 // Update rule by id - explicit route
-router.put("/pointRules/update/:id", earningRuleController.updateRule);
+router.put("/update/:id", earningRuleController.updateRule);
 
 // Delete route - explicit route
-router.delete("/pointRules/delete/:collectoId/:ruleId", earningRuleController.deleteRule);
+router.delete("/delete/:collectoId/:ruleId", earningRuleController.deleteRule);
 
 // Get rule by id or rules by collectoId
 // The controller handles both cases: if numeric, fetch by ID; otherwise treat as collectoId
-router.get("/pointRules/:id", earningRuleController.getRuleById);
+router.get("/:id", earningRuleController.getRuleById);
 
 export default router;
