@@ -23,7 +23,7 @@ function collectoHeaders(userToken?: string) {
   };
 }
 
-export function authCollectoRoutes(): Router {
+export function collectoRouter(): Router {
   const router = Router();
 
   // Initialize repositories and services for username functionality
@@ -42,6 +42,7 @@ export function authCollectoRoutes(): Router {
   router.post("/auth", async (req: Request, res: Response) => {
     try {
 
+      console.log(req.body);
       if (!req.body || Object.keys(req.body).length === 0) {
         return res.status(400).json({ message: "Request body is required" });
       }

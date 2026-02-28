@@ -30,6 +30,7 @@ export const CustomerRoutes = (): Router => {
   router.get("/", customerController.getAllCustomers);
 
   router.get("/client/:clientId", customerController.getCustomerByClientId);
+  
   router.get("/:id", customerController.getCustomerById);
 
   router.patch("/:id", customerController.updateCustomer);
