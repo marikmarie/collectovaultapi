@@ -11,11 +11,17 @@ import { CustomerRoutes } from "./routes/customer.routes";
 dotenv.config();
 const app = express();
 
+// simple request logger
+app.use((req, _res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 
 app.use("/", servicesRouter);
-app.use("/", collectoRouter);
+app.use("/", collectoRouter());
 app.use("/tier", tierRouter);
 app.use("/vaultPackages", vaultPackageRouter);
 app.use("/pointRules", earningRuleRouter);
@@ -28,7 +34,7 @@ app.get("/", (_, res) => {
   res.send("CollectoVault API proxy running");
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

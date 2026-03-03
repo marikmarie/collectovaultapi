@@ -49,6 +49,7 @@ export function collectoRouter(): Router {
       const response = await axios.post(`${BASE_URL}/auth`, req.body, {
         headers: collectoHeaders(),
       });
+      console.log(response.data);
       return res.status(response.status).json(response.data);
 
     } catch (err: any) {
