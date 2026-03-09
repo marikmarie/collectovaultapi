@@ -598,6 +598,44 @@ router.post("/invoice", async (req: Request, res: Response) => {
   }
 });
 
+
+router.post("/loyaltySettings", async (req: Request, res: Response) => {
+  try {
+    const userToken = req.headers.authorization;
+    const { vaultOTPToken, collectoId, clientId } = req.body; 
+    if (!collectoId || !clientId) {
+      return res.status(400).send("collectoId and clientId are required");
+    }
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/loyaltySettings`,
+        { collectoId, clientId },
+        { headers: collectoHeaders(userToken) },
+      );
+      console.log("Loyalty settings response:", response.data);
+      return res.json(response.data);
+    } catch (err: any) {
+      console.warn(
+        "Collecto loyalty settings fetch failed, returning local dummy:",
+        err?.response?.data || err.message,
+      );
+      return res.json({
+        success: true,  
+        collectoId,
+        clientId,
+        pointsToCurrencyRate: 100,  
+        message: "Local loyalty settings (Collecto unreachable)",
+      });
+    } 
+  } catch (err: any) {
+    console.error("Loyalty Settings Error:", err?.response?.data || err.message);
+    return res.status(err?.response?.status || 500).json({
+      message: "Failed to fetch loyalty settings",
+      error: err?.response?.data || err.message,
+    });
+  }
+});
+
 // Query transactions by customer (POST)
 router.post("/transactions", async (req: Request, res: Response) => {
   try {
@@ -691,5 +729,6 @@ router.get("/transactions/:transactionId", async (req: Request, res: Response) =
     });
   }
 });
+
 
 export default router;
