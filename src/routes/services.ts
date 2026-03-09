@@ -602,7 +602,7 @@ router.post("/invoice", async (req: Request, res: Response) => {
 router.post("/loyaltySettings", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-    const { vaultOTPToken, collectoId, clientId } = req.body; 
+    const { collectoId, clientId } = req.body; 
     if (!collectoId || !clientId) {
       return res.status(400).send("collectoId and clientId are required");
     }
