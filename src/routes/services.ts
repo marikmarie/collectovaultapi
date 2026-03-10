@@ -107,102 +107,9 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
   }
 });
 
-// Helper function to process invoices and calculate points
-async function processInvoicesForPoints(
-  response: any,
-  collectoId: string,
-  clientId: string,
-  purchaseRule: any 
-) {
-  console.log(`Processing invoices for points with rule "${purchaseRule.ruleTitle}" (ID: ${purchaseRule.id}) for client ${clientId}`);
-  if (!response?.data?.data || !Array.isArray(response.data.data)) {
-    console.log("No invoice data to process");
-    return;
-  }
-
-  if (!purchaseRule || !purchaseRule.id) {
-    console.log("No earning rule provided for client", clientId);
-    return;
-  }
-
-  const invoiceList = response.data.data;
-  console.log(`Using earning rule "${purchaseRule.ruleTitle}" (ID: ${purchaseRule.id}): ${purchaseRule.points} points per invoice for client ${clientId}`);
-
-  for (const invoice of invoiceList) {
-    try {
-      const invoiceId = invoice.details?.id;
-      const totalAmountPaid = invoice.total_amount_paid || 0;
-
-      // Skip invoices that haven't been paid
-      if (!invoiceId || totalAmountPaid <= 0) {
-        console.log(`Skipping invoice ${invoiceId}: Not fully paid (${totalAmountPaid})`);
-        continue;
-      }
-
-      // Check if this invoice has already been processed
-      const existingTransaction = await transactionRepository.findByTransactionId(invoiceId);
-      if (existingTransaction) {
-        console.log(`Invoice ${invoiceId} already processed, skipping`);
-        continue;
-      }
-
-      // Get or create customer
-      const customer = await customerService.getOrCreateCustomer(
-        collectoId,
-        clientId,
-        clientId
-      );
-
-     const pointsEarned = purchaseRule.points;
-
-      // Create transaction record for this invoice
-      await transactionRepository.create(
-        customer.id,
-        collectoId,
-        clientId,
-        invoiceId,
-        "INVOICE_PURCHASE",
-        totalAmountPaid,
-        pointsEarned,
-        null,
-        "CONFIRMED"
-      );
-
-      // Update customer's earned points and current points
-      customer.addEarnedPoints(pointsEarned);
-      await customerRepository.update(customer.id, {
-        earnedPoints: customer.earnedPoints,
-        currentPoints: customer.currentPoints,
-      });
-
-      // Determine and update tier based on current points
-      const tier = await tierRepository.findTierForPoints(customer.currentPoints);
-      if (tier && customer.currentTierId !== tier.id) {
-        customer.currentTierId = tier.id;
-        await customerRepository.update(customer.id, {
-          currentTierId: tier.id,
-        });
-      }
-
-      console.log(
-        `Invoice ${invoiceId} processed: Customer ${customer.id} earned ${pointsEarned} points using rule "${purchaseRule.ruleTitle}" (ID: ${purchaseRule.id})`
-      );
-    } catch (invoiceErr: any) {
-      console.error(
-        `Error processing invoice ${invoice.details?.id}:`,
-        invoiceErr.message
-      );
-      // Continue to next invoice if one fails
-      continue;
-    }
-  }
-}
-
 router.post("/requestToPay", async (req: Request, res: Response) => {
   try {
     const userToken = req.headers.authorization;
-   
-
     const payload = { ...req.body }; 
 
     const {
@@ -261,16 +168,9 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
             clientId
           );
 
-          let pointsToAdd =
+          const pointsToAdd =
             points?.points_used ??
             Math.floor(amount || 0);
-
-          const vaultPackage =
-            await vaultPackageRepository.findByPrice(amount, collectoId);
-
-          if (vaultPackage) {
-            pointsToAdd = vaultPackage.pointsAmount;
-          }
 
           await transactionRepository.create(
             customer.id,
