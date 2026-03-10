@@ -23,7 +23,7 @@ function collectoHeaders(userToken?: string) {
   };
 }
 
-export function collectoRouter(): Router {
+// export function collectoRouter(): Router {
   const router = Router();
 
   // Initialize repositories and services for username functionality
@@ -150,9 +150,9 @@ export function collectoRouter(): Router {
       });
     }
   });
-
-  return router;
-}
+export default router;
+  // return router;
+// }
 
 export async function collectoAuthMiddleware(
   req: Request,
