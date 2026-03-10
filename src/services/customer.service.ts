@@ -26,8 +26,6 @@ export interface InvoicePaymentData {
 export class CustomerService {
   constructor(
     private readonly customerRepository: CustomerRepository,
-    private readonly tierRepository: TierRepository,
-    private readonly earningRuleRepository: EarningRuleRepository,
     private readonly tranRepository: TransactionRepository
   ) {}
 
@@ -130,36 +128,7 @@ export class CustomerService {
   }
 
 
-  /**
-   * Redeem points - when customer uses points
-   */
-  // async redeemPoints(customerId: number, pointsToRedeem: number): Promise<Customer> {
-  //   if (pointsToRedeem <= 0) {
-  //     throw new Error("Points to redeem must be greater than 0");
-  //   }
-
-  //   const customer = await this.getCustomerById(customerId);
-
-  //   if (customer.currentPoints < pointsToRedeem) {
-  //     throw new Error(
-  //       `Insufficient points. Customer has ${customer.currentPoints}, trying to redeem ${pointsToRedeem}`
-  //     );
-  //   }
-
-  //   const updated = (await this.customerRepository.redeemPoints(
-  //     customerId,
-  //     pointsToRedeem
-  //   )) as Customer;
-
-  //   // Check if tier should be downgraded
-  //   const newTier = await this.determineTierForPoints(updated.collectoId, updated.currentPoints);
-  //   if (newTier?.id !== updated.currentTierId) {
-  //     return (await this.customerRepository.updateTier(customerId, newTier?.id ?? null)) as Customer;
-  //   }
-
-  //   return updated;
-  // }
-
+  
 
   async getCustomerStats(collectoId: string) {
     try {

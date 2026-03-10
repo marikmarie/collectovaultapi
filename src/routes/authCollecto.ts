@@ -3,8 +3,6 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { CustomerService } from "../services/customer.service";
 import { CustomerRepository } from "../repositories/customer.repository";
-import { TierRepository } from "../repositories/tier.repository";
-import { EarningRuleRepository } from "../repositories/earning-rule.repository";
 import { TransactionRepository } from "../repositories/transaction.repository";
 
 dotenv.config();
@@ -28,13 +26,9 @@ function collectoHeaders(userToken?: string) {
 
   // Initialize repositories and services for username functionality
   const customerRepository = new CustomerRepository();
-  const tierRepository = new TierRepository();
-  const earningRuleRepository = new EarningRuleRepository();
   const tranRepo = new TransactionRepository();
   const customerService = new CustomerService(
     customerRepository,
-    tierRepository,
-    earningRuleRepository,
     tranRepo
   );
 
