@@ -158,28 +158,6 @@ export class CustomerService {
     return deactivated;
   }
 
-
-
-   /**
-  async getAllClientDetails(collectoId: string): Promise<any> {
-    try {
-      // Fetch all customers for the given collectoId
-      const customers = await this.customerRepository.findByCollectoId(collectoId);
-      const totalUsers = customers.length;
-      const totalPointsIssued = customers.reduce((sum, c) => sum + c.earnedPoints, 0);
-
-      // For package revenue, use transactions table
-      const transactions = await this.tranRepository.findByCollectoId(collectoId);
-      const packageRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
-
-      return {
-        totalUsers,
-        totalPointsIssued,
-        packageRevenue: `UGX ${packageRevenue.toLocaleString()}`,
-      };
-    } catch (error) {
-      console.error("Error fetching admin dashboard stats:", error);
-      throw error;
-    }
-  }
 }
+
+
