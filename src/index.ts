@@ -3,9 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import servicesRouter from "./routes/services";
 import authCollecto from "./routes/authCollecto";
-import tierRouter from "./routes/tier.routes";
-import vaultPackageRouter from "./routes/vault-package.routes";
-import earningRuleRouter from "./routes/earning-rule.routes";
 import { CustomerRoutes } from "./routes/customer.routes";
 
 dotenv.config();
@@ -180,69 +177,7 @@ if (isCLIMode) {
         });
         break;
 
-    case "pointRules":
-    case "tier":
-    case "vaultPackages": {
-      const routers: any = {
-        pointRules: earningRuleRouter,
-        tier: tierRouter,
-        vaultPackages: vaultPackageRouter,
-      };
-      
-      const router = routers[path];
-      const firstParam = params[0];
-
-      // --- HANDLE CREATE (POST with /create/collectoId) ---
-      if (firstParam === "create") {
-        mockReq.method = "POST";
-        const vendorId = params[1];
-        mockReq.body = params[2] ? JSON.parse(params[2]) : {};
-        mockReq.url = `/create/${vendorId}`;
-        mockReq.params = { collectoId: vendorId };
-      }
-      // --- HANDLE UPDATE (PUT with /update/id) ---
-      else if (firstParam === "update") {
-        mockReq.method = "PUT";
-        const id = params[1];
-        mockReq.body = params[2] ? JSON.parse(params[2]) : {};
-        mockReq.url = `/update/${id}`;
-        mockReq.params = { id };
-      }
-      // --- HANDLE DELETE (DELETE with /delete/vendorId/id) ---
-      else if (firstParam === "delete") {
-        mockReq.method = "DELETE";
-        const vendorId = params[1];
-        const id = params[2];
-        mockReq.url = `/delete/${id}`;
-        mockReq.params = { collectoId: vendorId, id, tierId: id, ruleId: id };
-      }
-      // --- HANDLE SAVE (POST with old format) ---
-      else if (firstParam && firstParam.startsWith("{")) {
-        mockReq.method = "POST";
-        mockReq.body = JSON.parse(firstParam);
-        mockReq.url = `/${mockReq.body.collectoId || ""}`;
-      } 
-      // --- HANDLE DELETE (old format DELETE) ---
-      else if (firstParam === "DELETE") {
-        mockReq.method = "DELETE";
-        const vendorId = params[1];
-        const ruleId = params[2];
-        mockReq.url = `/delete/${ruleId}`;
-        mockReq.params = { collectoId: vendorId, ruleId, id: ruleId, tierId: ruleId };
-      } 
-      // --- HANDLE FETCH (GET) ---
-      else {
-        mockReq.method = "GET";
-        const id = params[0];
-        mockReq.url = id ? `/${id}` : "/";
-        if (id) mockReq.params = { id, collectoId: id };
-      }
-
-      router(mockReq, mockRes, () => {
-        if (!responsesSent) mockRes.status(404).json({ error: `Route not found in ${path}` });
-      });
-      break;
-    }
+  
 
     default:
       mockRes.status(404).json({ error: "Unknown path", path });
@@ -260,9 +195,7 @@ if (isCLIMode) {
 
   app.use("/customers", CustomerRoutes());
   app.use("/admin", CustomerRoutes());
-  app.use("/tier", tierRouter);
-  app.use("/vaultPackages", vaultPackageRouter);
-  app.use("/pointRules", earningRuleRouter);
+
   
   // Mounted at root so internal routes like router.post("/services") work as /services
   app.use("/", servicesRouter);
