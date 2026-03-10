@@ -161,14 +161,6 @@ export class CustomerService {
 
 
    /**
-   * 
-   AdminDashboardStats
-  totalUsers: number;
-  totalPointsIssued: number;
-  topTierMembers: number;
-  packageRevenue: string;
-   */
-
   async getAllClientDetails(collectoId: string): Promise<any> {
     try {
       // Fetch all customers for the given collectoId
@@ -176,20 +168,13 @@ export class CustomerService {
       const totalUsers = customers.length;
       const totalPointsIssued = customers.reduce((sum, c) => sum + c.earnedPoints, 0);
 
-      // Calculate top tier members
-      const tiers = await this.tierRepository.findAll(false);
-      const topTier = tiers.reduce((prev, current) =>
-        prev.pointsRequired > current.pointsRequired ? prev : current
-      );
-      const topTierMembers = customers.filter(c => c.currentTierId === topTier.id).length;
-      // For package revenue, its the vault_transaction table from transaction_repository
+      // For package revenue, use transactions table
       const transactions = await this.tranRepository.findByCollectoId(collectoId);
       const packageRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
-     
+
       return {
         totalUsers,
         totalPointsIssued,
-        topTierMembers,
         packageRevenue: `UGX ${packageRevenue.toLocaleString()}`,
       };
     } catch (error) {
@@ -197,39 +182,4 @@ export class CustomerService {
       throw error;
     }
   }
-
-  /**
-   * Get tier information by tier ID
-   */
-  async getTierInfo(tierId: number | null) {
-    if (!tierId) {
-      return null;
-    }
-    const tier = await this.tierRepository.findById(tierId);
-    if (!tier) {
-      return null;
-    }
-    return {
-      id: tier.id,
-      name: tier.name,
-      pointsRequired: tier.pointsRequired,
-      earningMultiplier: tier.earningMultiplier,
-      isActive: tier.isActive,
-    };
-  }
-
-  /**
-   * Get all active tiers
-   */
-  async getAllTiers() {
-    const allTiers = await this.tierRepository.findAll(false);
-    return allTiers.map((tier) => ({
-      id: tier.id,
-      name: tier.name,
-      pointsRequired: tier.pointsRequired,
-      earningMultiplier: tier.earningMultiplier,
-      isActive: tier.isActive,
-    }));
-  }
-  
 }

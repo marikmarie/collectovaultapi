@@ -145,7 +145,15 @@ if (isCLIMode) {
         });
         break;
 
-        
+      case "loyaltySettings":
+        mockReq.method = "POST";
+        mockReq.url = "/loyaltySettings";
+        mockReq.body = parseInputData(params);
+        servicesRouter(mockReq, mockRes, () => {
+          if (!responsesSent) mockRes.status(404).json({ error: "Loyalty Settngs route not found" });
+        });
+        break;
+
       case "transactions":
         mockReq.method = "POST";
         mockReq.url = "/transactions";

@@ -229,12 +229,10 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
     if (!transactionId)
       return res.status(400).send("Missing transactionId in body");
 
-    // Check if this is a BUYPOINTS transaction by searching in the transactions table
-    let isBuyPoints = false;
+    // Try to find an existing transaction record (for status updates)
     let dbTransaction: any = null;
     try {
       dbTransaction = await transactionRepository.findByTransactionId(transactionId);
-      isBuyPoints = !!dbTransaction;
     } catch (err: any) {
       console.log("Transaction not found in DB, proceeding as regular payment");
     }
@@ -275,41 +273,13 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
         statusFromCollecto.includes(s),
       );
 
-      // Handle BUYPOINTS transactions
-      if (isBuyPoints && dbTransaction) {
+      // If we have a stored transaction, update its status
+      if (dbTransaction) {
         try {
-          // Update transaction payment status
           await transactionRepository.updatePaymentStatus(
             dbTransaction.id,
             statusFromCollecto
           );
-
-          // If payment is confirmed, update customer points
-          if (isConfirmed) {
-            const customer = await customerService.getOrCreateCustomer(
-              collectoId,
-              clientId,
-              clientId
-            );
-
-            // Add bought points
-            customer.addBoughtPoints(dbTransaction.points);
-            await customerRepository.update(customer.id, {
-              boughtPoints: customer.boughtPoints,
-              currentPoints: customer.currentPoints
-            });
-
-            // Determine and update tier based on current points
-            const tier = await tierRepository.findTierForPoints(customer.currentPoints);
-            if (tier && customer.currentTierId !== tier.id) {
-              customer.currentTierId = tier.id;
-              await customerRepository.update(customer.id, {
-                currentTierId: tier.id
-              });
-            }
-
-            console.log(`Buy Points Transaction Confirmed: Customer ${customer.id} received ${dbTransaction.points} points`);
-          }
 
           return res.json({
             transactionId,
@@ -322,7 +292,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
             }
           });
         } catch (txnErr: any) {
-          console.error("Error processing BUYPOINTS transaction:", txnErr.message);
+          console.error("Error updating transaction status:", txnErr.message);
           return res.status(500).json({
             transactionId,
             message: "Error updating transaction",
@@ -331,7 +301,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
         }
       }
 
-      // Regular transactions (non-BUYPOINTS)
+      // Regular transactions (no local record)
       return res.json({
         transactionId,
         status: isConfirmed ? "confirmed" : "pending",
