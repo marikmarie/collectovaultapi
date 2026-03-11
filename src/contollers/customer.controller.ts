@@ -98,7 +98,7 @@ export class CustomerController {
   };
 
   /**
-   * Get customer info by clientId (with tier details)
+   * Get customer info by clientId
    */
   getCustomerInfo = async (
     req: Request,
@@ -127,13 +127,9 @@ export class CustomerController {
         return;
       }
 
-      // Get current tier and all tiers info
-      const tierInfo = await this.customerService.getTierInfo(customer.currentTierId);
-      const allTiers = await this.customerService.getAllTiers();
-
       res.status(200).json({
         success: true,
-        customer: {
+        data: {
           id: customer.id,
           collectoId: customer.collectoId,
           clientId: customer.clientId,
@@ -144,8 +140,6 @@ export class CustomerController {
           totalPurchased: customer.totalPurchased,
           isActive: customer.isActive,
         },
-        currentTier: tierInfo,
-        tiers: allTiers,
       });
     } catch (err) {
       next(err);
@@ -172,8 +166,7 @@ export class CustomerController {
         return;
       }
 
-      const stats = await this.customerService.getAllClientDetails(collectoId);
-      console.log("Admin Dashboard Stats fetched for collectoId:", collectoId, stats);
+      const stats = await this.customerService.getCustomerStats(collectoId);
       res.status(200).json({
         success: true,
         data: stats,
@@ -182,6 +175,7 @@ export class CustomerController {
     catch (err) {
       next(err);
     }
+    
   };
   /**
    * Create a new customer

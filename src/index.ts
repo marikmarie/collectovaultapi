@@ -15,16 +15,17 @@ if (isCLIMode) {
   console.error = () => {};
 
   const args = process.argv.slice(2);
-  const path = args[0]; 
+  const path = args[0];
   const params = args.slice(1);
 
   const timeout = setTimeout(() => {
-    realConsoleLog(JSON.stringify({ status: "error", message: "Execution timeout" }));
+    realConsoleLog(
+      JSON.stringify({ status: "error", message: "Execution timeout" }),
+    );
     process.exit(1);
   }, 10000);
 
   let responsesSent = false;
-
 
   const mockRes: any = {
     statusCode: 200,
@@ -43,10 +44,18 @@ if (isCLIMode) {
       realConsoleLog(typeof data === "object" ? JSON.stringify(data) : data);
       process.exit(0);
     },
-    status: (code: number) => { mockRes.statusCode = code; return mockRes; },
-    setHeader: (name: string, value: string) => { mockRes.headers[name] = value; return mockRes; },
+    status: (code: number) => {
+      mockRes.statusCode = code;
+      return mockRes;
+    },
+    setHeader: (name: string, value: string) => {
+      mockRes.headers[name] = value;
+      return mockRes;
+    },
     get: (name: string) => mockRes.headers[name],
-    end: () => { if (!responsesSent) process.exit(0); },
+    end: () => {
+      if (!responsesSent) process.exit(0);
+    },
   };
 
   const mockReq: any = {
@@ -68,7 +77,8 @@ if (isCLIMode) {
         mockReq.url = "/auth";
         mockReq.body = parseInputData(params);
         authCollecto(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Auth route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth route not found" });
         });
         break;
 
@@ -77,7 +87,8 @@ if (isCLIMode) {
         mockReq.url = "/authVerify";
         mockReq.body = parseInputData(params);
         authCollecto(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Auth verify route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth verify route not found" });
         });
         break;
 
@@ -86,7 +97,28 @@ if (isCLIMode) {
         mockReq.url = "/auth";
         mockReq.body = parseInputData(params);
         authCollecto(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Auth route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Auth route not found" });
+        });
+        break;
+
+      case "getByUsername":
+        mockReq.method = "POST";
+        mockReq.url = "/getByUsername";
+        mockReq.body = parseInputData(params);
+        authCollecto(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Get username route not found" });
+        });
+        break;
+
+      case "setUsername":
+        mockReq.method = "POST";
+        mockReq.url = "/setUsername";
+        mockReq.body = parseInputData(params);
+        authCollecto(mockReq, mockRes, () => {
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Set Username route not found" });
         });
         break;
 
@@ -96,7 +128,8 @@ if (isCLIMode) {
         mockReq.url = "/services";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Service route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Service route not found" });
         });
         break;
 
@@ -105,7 +138,10 @@ if (isCLIMode) {
         mockReq.url = "/invoiceDetails";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Invoice details route not found" });
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Invoice details route not found" });
         });
         break;
 
@@ -114,7 +150,10 @@ if (isCLIMode) {
         mockReq.url = "/requestToPay";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Request to pay route not found" });
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Request to pay route not found" });
         });
         break;
 
@@ -123,7 +162,10 @@ if (isCLIMode) {
         mockReq.url = "/requestToPayStatus";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Payment status route not found" });
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Payment status route not found" });
         });
         break;
 
@@ -132,7 +174,8 @@ if (isCLIMode) {
         mockReq.url = "/verifyPhoneNumber";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Verify phone route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Verify phone route not found" });
         });
         break;
 
@@ -141,7 +184,8 @@ if (isCLIMode) {
         mockReq.url = "/invoice";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Service route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Service route not found" });
         });
         break;
 
@@ -150,7 +194,10 @@ if (isCLIMode) {
         mockReq.url = "/loyaltySettings";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Loyalty Settngs route not found" });
+          if (!responsesSent)
+            mockRes
+              .status(404)
+              .json({ error: "Loyalty Settngs route not found" });
         });
         break;
 
@@ -159,18 +206,20 @@ if (isCLIMode) {
         mockReq.url = "/transactions";
         mockReq.body = parseInputData(params);
         servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Transaction route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Transaction route not found" });
         });
         break;
 
       case "customers":
         mockReq.method = "GET";
-        const customerAction = params[0]; 
+        const customerAction = params[0];
         const clientId = params[1];
         mockReq.url = `/info/${clientId}`;
         mockReq.params = { clientId };
         CustomerRoutes()(mockReq, mockRes, () => {
-           if (!responsesSent) mockRes.status(404).json({ error: "Customer route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Customer route not found" });
         });
         break;
 
@@ -181,15 +230,13 @@ if (isCLIMode) {
         mockReq.url = `/${adminAction}`;
         mockReq.query = { collectoId: collectoIdParam || "all" };
         CustomerRoutes()(mockReq, mockRes, () => {
-          if (!responsesSent) mockRes.status(404).json({ error: "Admin route not found" });
+          if (!responsesSent)
+            mockRes.status(404).json({ error: "Admin route not found" });
         });
         break;
 
-  
-
-    default:
-      mockRes.status(404).json({ error: "Unknown path", path });
-
+      default:
+        mockRes.status(404).json({ error: "Unknown path", path });
     }
   } catch (err: any) {
     realConsoleLog(JSON.stringify({ status: "error", message: err.message }));
@@ -204,7 +251,6 @@ if (isCLIMode) {
   app.use("/customers", CustomerRoutes());
   app.use("/admin", CustomerRoutes());
 
-  
   // Mounted at root so internal routes like router.post("/services") work as /services
   app.use("/", servicesRouter);
   app.use("/", authCollecto);
@@ -217,7 +263,7 @@ function parseInputData(args: string[]): Record<string, any> {
   try {
     if (args[0].startsWith("{")) return JSON.parse(args[0]);
   } catch (e) {}
-  
+
   const body: Record<string, any> = {};
   for (let i = 0; i < args.length; i += 2) {
     if (args[i]) body[args[i]] = args[i + 1] !== undefined ? args[i + 1] : "";
