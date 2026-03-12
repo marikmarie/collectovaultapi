@@ -287,17 +287,48 @@ export class CustomerRepository {
         }
       }
 
-      // Only username and isActive can be updated
-      const setClause: string[] = [];
-      const values: any[] = [];
-      if (updates.isActive !== undefined) {
-        setClause.push("isActive = ?");
-        values.push(updates.isActive);
+      // If username is being set, ensure it exists in vault_clients
+      if (updates.username !== undefined) {
+        // Check if username exists in vault_clients
+        const [existingClientRows] = await connection.query<CustomerRow[]>(
+          "SELECT * FROM vault_clients WHERE username = ?",
+          [updates.username]
+        );
+        let userId;
+        if (existingClientRows.length === 0) {
+          // Insert new username in vault_clients
+          const [clientResult] = await connection.query<ResultSetHeader>(
+            "INSERT INTO vault_clients (username) VALUES (?)",
+            [updates.username]
+          );
+          userId = clientResult.insertId;
+        } else {
+          userId = existingClientRows[0].id;
+        }
+        // Check if business client exists
+        const [existingBusinessRows] = await connection.query<CustomerRow[]>(
+          "SELECT * FROM vault_business_clients WHERE userId = ?",
+          [userId]
+        );
+        if (existingBusinessRows.length === 0) {
+          // Insert new business client
+          await connection.query(
+            "INSERT INTO vault_business_clients (userId, clientId, collectoId, isActive) VALUES (?, ?, ?, ?)",
+            [userId, updates.clientId || null, updates.collectoId || null, updates.isActive !== undefined ? updates.isActive : true]
+          );
+        }
+        // Update username in business client
+        await connection.query(
+          "UPDATE vault_business_clients SET userId = ? WHERE id = ?",
+          [userId, customerId]
+        );
       }
-      if (setClause.length > 0) {
-        values.push(customerId);
-        const query = `UPDATE vault_business_clients SET ${setClause.join(", ")} WHERE id = ?`;
-        await connection.query(query, values);
+      // Update isActive if provided
+      if (updates.isActive !== undefined) {
+        await connection.query(
+          "UPDATE vault_business_clients SET isActive = ? WHERE id = ?",
+          [updates.isActive, customerId]
+        );
       }
 
       await connection.commit();
