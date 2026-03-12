@@ -133,7 +133,6 @@ function collectoHeaders(userToken?: string) {
           clientId: customer.clientId,
           collectoId: customer.collectoId,
           username: customer.username,
-          name: customer.name,
         },
       });
     } catch (err: any) {
