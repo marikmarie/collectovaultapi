@@ -47,12 +47,13 @@ export class CustomerService {
     return customer;
   }
 
-  async getCustomerByUsername(username: string): Promise<Customer> {
-    const customer = await this.customerRepository.findByUsername(username);
-    if (!customer) {
+  async getCustomerByUsername(username: string, collectoId?: string): Promise<Customer> {
+    const customers = await this.customerRepository.findByUsername(username, collectoId);
+    if (customers.length === 0) {
       throw new Error(`Customer with username ${username} not found`);
     }
-    return customer;
+    // Return first match (legacy behavior if no collectoId provided)
+    return customers[0];
   }
 
   async setUsername(clientId: string, username: string, collectoId?: string): Promise<Customer> {
@@ -65,22 +66,24 @@ export class CustomerService {
       throw new Error("Username must be between 3 and 100 characters");
     }
 
-    // Check if username already exists
-    const existingWithUsername = await this.customerRepository.findByUsername(username);
-    if (existingWithUsername) {
-      throw new Error("Username already taken");
-    }
-
     // Find customer by clientId
     const customer = await this.customerRepository.findByClientId(clientId, collectoId);
     if (!customer) {
       throw new Error(`Customer with clientId ${clientId} not found. Please login first.`);
     }
 
-    // Update customer with username
-    return this.customerRepository.update(customer.id, {
-      username: username.trim(),
-    }) as Promise<Customer>;
+    // Update customer with username. 
+    // The repository handles linking to existing vault_clients or updating the username.
+    try {
+      return await this.customerRepository.update(customer.id, {
+        username: username.trim(),
+      }) as Customer;
+    } catch (error: any) {
+      if (error.message === "Username already taken") {
+        throw new Error("Username already taken by another account");
+      }
+      throw error;
+    }
   }
 
   async getOrCreateCustomer(
