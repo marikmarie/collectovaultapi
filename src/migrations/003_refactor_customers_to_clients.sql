@@ -1,4 +1,6 @@
 -- Migration to refactor vault_customers into vault_clients and vault_business_clients
+-- vault_clients now holds the profile and points (global user context)
+-- vault_business_clients is a simplified mapping table
 
 CREATE TABLE IF NOT EXISTS vault_clients (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -11,13 +13,7 @@ CREATE TABLE IF NOT EXISTS vault_business_clients (
     userId INT NOT NULL,
     clientId VARCHAR(255) UNIQUE NOT NULL,
     collectoId VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    current_points INT DEFAULT 0,
-    earned_points INT DEFAULT 0,
-    bought_points INT DEFAULT 0,
-    tier_id INT DEFAULT NULL,
-    total_purchased DECIMAL(15, 2) DEFAULT 0.00,
-    IsActive BOOLEAN DEFAULT TRUE,
+    isActive BOOLEAN DEFAULT TRUE,
     recorddate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userId) REFERENCES vault_clients(id),
     UNIQUE KEY idx_collecto_client (collectoId, clientId)

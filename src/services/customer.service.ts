@@ -5,12 +5,12 @@ import { TransactionRepository } from "../repositories/transaction.repository";
 export interface CreateCustomerDTO {
   collectoId: string;
   clientId: string;
-  name: string;
+  username: string;
 }
 
 export interface UpdateCustomerDTO {
-  name?: string;
   username?: string;
+  isActive?: boolean;
 }
 
 export interface InvoicePaymentData {
@@ -52,28 +52,20 @@ export class CustomerService {
     if (customers.length === 0) {
       throw new Error(`Customer with username ${username} not found`);
     }
-    // Return first match (legacy behavior if no collectoId provided)
     return customers[0];
   }
 
   async setUsername(clientId: string, username: string, collectoId?: string): Promise<Customer> {
-    // Validate username format
     if (!username || username.trim().length === 0) {
       throw new Error("Username cannot be empty");
     }
-
     if (username.length < 3 || username.length > 100) {
       throw new Error("Username must be between 3 and 100 characters");
     }
-
-    // Find customer by clientId
     const customer = await this.customerRepository.findByClientId(clientId, collectoId);
     if (!customer) {
       throw new Error(`Customer with clientId ${clientId} not found. Please login first.`);
     }
-
-    // Update customer with username. 
-    // The repository handles linking to existing vault_clients or updating the username.
     try {
       return await this.customerRepository.update(customer.id, {
         username: username.trim(),
@@ -89,42 +81,35 @@ export class CustomerService {
   async getOrCreateCustomer(
     collectoId: string,
     clientId: string,
-    name: string
+    username: string
   ): Promise<Customer> {
-    // Try to find existing customer
     const existingCustomer = await this.customerRepository.findByClientId(clientId, collectoId);
     if (existingCustomer) {
       return existingCustomer;
     }
-
-    // Create new customer
-    return this.customerRepository.create(collectoId, clientId, name);
+    return await this.customerRepository.create(collectoId, clientId, username);
   }
 
   async createCustomer(dto: CreateCustomerDTO): Promise<Customer> {
-    // Validate
-    if (!dto.collectoId || !dto.clientId || !dto.name) {
-      throw new Error("collectoId, clientId, and name are required");
+    if (!dto.collectoId || !dto.clientId || !dto.username) {
+      throw new Error("collectoId, clientId, and username are required");
     }
-
-    // Check if customer already exists
     const existing = await this.customerRepository.findByClientId(dto.clientId, dto.collectoId);
     if (existing) {
       throw new Error(`Customer with clientId ${dto.clientId} already exists for this collectoId`);
     }
-
     return this.customerRepository.create(
       dto.collectoId,
       dto.clientId,
-      dto.name
+      dto.username
     );
   }
 
   async updateCustomer(id: number, dto: UpdateCustomerDTO): Promise<Customer> {
     const customer = await this.getCustomerById(id);
-
     return this.customerRepository.update(id, {
-      name: dto.name ?? customer.name,
+      username: dto.username ?? customer.username,
+      isActive: dto.isActive ?? customer.isActive,
     }) as Promise<Customer>;
   }
 
@@ -134,15 +119,8 @@ export class CustomerService {
   async getCustomerStats(collectoId: string) {
     try {
       const customers = await this.customerRepository.findByCollectoId(collectoId);
-
       return {
         totalCustomers: customers.length,
-        totalPoints: customers.reduce((sum, c) => sum + c.currentPoints, 0),
-        totalPurchased: customers.reduce((sum, c) => sum + c.totalPurchased, 0),
-        averagePointsPerCustomer:
-          customers.length > 0
-            ? Math.floor(customers.reduce((sum, c) => sum + c.currentPoints, 0) / customers.length)
-            : 0,
       };
     } catch (error) {
       console.error("Error getting customer stats:", error);

@@ -133,11 +133,7 @@ export class CustomerController {
           id: customer.id,
           collectoId: customer.collectoId,
           clientId: customer.clientId,
-          name: customer.name,
-          currentPoints: customer.currentPoints,
-          earnedPoints: customer.earnedPoints,
-          boughtPoints: customer.boughtPoints,
-          totalPurchased: customer.totalPurchased,
+   
           isActive: customer.isActive,
         },
       });
@@ -201,7 +197,7 @@ export class CustomerController {
       const customer = await this.customerService.createCustomer({
         collectoId,
         clientId,
-        name,
+        username: name,
       });
 
       res.status(201).json({
@@ -234,7 +230,7 @@ export class CustomerController {
       }
 
       const customer = await this.customerService.updateCustomer(id, {
-        name,
+        username: name,
       });
 
       res.status(200).json({
