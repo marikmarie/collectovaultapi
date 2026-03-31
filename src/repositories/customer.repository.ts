@@ -287,7 +287,6 @@ export class CustomerRepository {
         }
       }
 
-      // If username is being set, ensure it exists in vault_clients
       if (updates.username !== undefined) {
         // Check if username exists in vault_clients
         const [existingClientRows] = await connection.query<CustomerRow[]>(
