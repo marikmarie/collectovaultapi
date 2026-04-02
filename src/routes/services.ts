@@ -138,7 +138,7 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       
       const response = await axios.post(
         `${BASE_URL}/requestToPay`,
-        payload,
+        req.body,
         { headers: collectoHeaders(userToken) }
       );
 
@@ -160,38 +160,7 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
         createdAt: new Date(),
       });
 
-      if (reference?.includes("BUYPOINTS")) {
-        try {
-          const customer = await customerService.getOrCreateCustomer(
-            collectoId,
-            clientId,
-            clientId
-          );
-
-          const pointsToAdd =
-            points?.points_used ??
-            Math.floor(amount || 0);
-
-          await transactionRepository.create(
-            customer.id,
-            collectoId,
-            clientId,
-            transactionId,
-            reference,
-            amount || 0,
-            pointsToAdd,
-            paymentOption,
-            "PENDING"
-          );
-
-          console.log(
-            `BUYPOINTS logged: ${transactionId}, Points: ${pointsToAdd}`
-          );
-        } catch (txnErr: any) {
-          console.error("Error logging BUYPOINTS transaction:", txnErr.message);
-        }
-      }
-
+     
       return res.json({
         status: collectoData.status || "200",
         status_message: collectoData.status_message || "success",
