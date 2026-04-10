@@ -76,10 +76,11 @@ function collectoHeaders(userToken?: string) {
     }
   });
 
-  // POST /set-username - Set username for a customer
+  // POST /set-username - Set username for a customer via Collecto endpoint
   router.post("/setUsername", async (req: Request, res: Response) => {
     try {
       const { clientId, username, collectoId } = req.body;
+      const userToken = req.headers.authorization;
 
       // Validate required fields
       if (!clientId) {
@@ -96,14 +97,61 @@ function collectoHeaders(userToken?: string) {
         });
       }
 
-      // Set the username
-      const updatedCustomer = await customerService.setUsername(clientId, username, collectoId);
+      // Validate username format
+      if (username.length < 3 || username.length > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "Username must be between 3 and 100 characters",
+        });
+      }
 
-      return res.status(200).json({
-        success: true,
-        message: "Username set successfully",
-        data: updatedCustomer,
-      });
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({
+          success: false,
+          message: "Username can only contain letters, numbers, underscores, and hyphens",
+        });
+      }
+
+      // Call Collecto endpoint to set username
+      const collectoPayload = {
+        clientId,
+        username: username.trim(),
+        collectoId: collectoId || undefined,
+      };
+
+      try {
+        const collectoResponse = await axios.post(
+          `${BASE_URL}/setUsername`,
+          collectoPayload,
+          {
+            headers: collectoHeaders(userToken),
+          }
+        );
+
+        console.log("[Collecto /setUsername] Success:", collectoResponse.data);
+
+        return res.status(200).json({
+          success: true,
+          message: "Username set successfully in Collecto system",
+          data: collectoResponse.data?.data || { clientId, username },
+        });
+      } catch (collectoErr: any) {
+        console.error("[Collecto /setUsername] ERROR", collectoErr?.response?.data || collectoErr.message);
+        
+        // Check if error is due to username already taken
+        if (collectoErr?.response?.status === 409 || 
+            collectoErr?.response?.data?.message?.toLowerCase().includes('taken')) {
+          return res.status(409).json({
+            success: false,
+            message: "Username already taken",
+          });
+        }
+
+        return res.status(collectoErr?.response?.status || 400).json({
+          success: false,
+          message: collectoErr?.response?.data?.message || "Failed to set username in Collecto system",
+        });
+      }
     } catch (err: any) {
       console.error("[Collecto /set-username] ERROR", err?.message);
       return res.status(400).json({

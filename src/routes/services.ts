@@ -160,7 +160,6 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
         createdAt: new Date(),
       });
 
-     
       return res.json({
         status: collectoData.status || "200",
         status_message: collectoData.status_message || "success",
