@@ -4,6 +4,10 @@ import dotenv from "dotenv";
 import servicesRouter from "./routes/services";
 import authCollecto from "./routes/authCollecto";
 import { CustomerRoutes } from "./routes/customer.routes";
+import { RatingRoutes } from "./routes/rating.routes";
+import { FeedbackRoutes } from "./routes/feedback.routes";
+import { ChatRoutes } from "./routes/chat.routes";
+import { ContactRoutes } from "./routes/contact.routes";
 
 dotenv.config();
 
@@ -250,6 +254,10 @@ if (isCLIMode) {
 
   app.use("/customers", CustomerRoutes());
   app.use("/admin", CustomerRoutes());
+  app.use("/ratings", RatingRoutes());
+  app.use("/feedback", FeedbackRoutes());
+  app.use("/chat", ChatRoutes());
+  app.use("/contacts", ContactRoutes());
 
   // Mounted at root so internal routes like router.post("/services") work as /services
   app.use("/", servicesRouter);

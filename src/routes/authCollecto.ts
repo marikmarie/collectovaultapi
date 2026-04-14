@@ -128,8 +128,6 @@ function collectoHeaders(userToken?: string) {
           }
         );
 
-        console.log("[Collecto /setUsername] Success:", collectoResponse.data);
-
         return res.status(200).json({
           success: true,
           message: "Username set successfully in Collecto system",
@@ -194,6 +192,7 @@ function collectoHeaders(userToken?: string) {
 export default router;
   // return router;
 // }
+
 
 export async function collectoAuthMiddleware(
   req: Request,
