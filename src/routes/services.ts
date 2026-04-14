@@ -216,7 +216,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
 
       const response = await axios.post(
         `${BASE_URL}/requestToPayStatus`,
-        payload,
+        req.body,
         {
           headers: collectoHeaders(userToken),
         },
