@@ -407,53 +407,6 @@ router.post("/loyaltySettings", async (req: Request, res: Response) => {
   }
 });
 
-// Query transactions by customer (POST)
-router.post("/transactions", async (req: Request, res: Response) => {
-  try {
-    const { customerId, limit, offset } = req.body;
-    const pageLimit = Math.min(Number(limit) || 50, 100);
-    const pageOffset = Number(offset) || 0;
-
-    if (!customerId) {
-      return res.status(400).json({
-        message: "customerId is required"
-      });
-    }
-     
-    console.log("Fetching transactions for customerId:", customerId, "limit:", pageLimit, "offset:", pageOffset);
-    let transactions = await transactionRepository.findByCustomerId(
-      customerId,
-      pageLimit,
-      pageOffset
-    );
-
-    console.log(`Found ${transactions.length} transactions for customerId:`, customerId);
-    return res.json({
-      success: true,
-      customerId,
-      total: transactions.length,
-      limit: pageLimit,
-      offset: pageOffset,
-      transactions: transactions.map(t => ({
-        id: t.id,
-        transactionId: t.transactionId,
-        amount: t.amount,
-        points: t.points,
-        paymentStatus: t.paymentStatus,
-        paymentMethod: t.paymentMethod,
-        reference: t.reference,
-        createdAt: t.createdAt,
-        confirmedAt: t.confirmedAt
-      }))
-    });
-  } catch (err: any) {
-    console.error("Transactions Customer Query Error:", err.message);
-    return res.status(500).json({
-      message: "Failed to fetch customer transactions",
-      error: err.message
-    });
-  }
-});
 
 // Query single transaction
 router.get("/transactions/:transactionId", async (req: Request, res: Response) => {
