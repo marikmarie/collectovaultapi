@@ -205,15 +205,7 @@ if (isCLIMode) {
         });
         break;
 
-      case "transactions":
-        mockReq.method = "POST";
-        mockReq.url = "/transactions";
-        mockReq.body = parseInputData(params);
-        servicesRouter(mockReq, mockRes, () => {
-          if (!responsesSent)
-            mockRes.status(404).json({ error: "Transaction route not found" });
-        });
-        break;
+     
 
       case "customers":
         mockReq.method = "GET";
