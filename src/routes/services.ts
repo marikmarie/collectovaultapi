@@ -146,19 +146,8 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
       const innerData = collectoData?.data || {};
 
       const transactionId =
-        innerData.transactionId || innerData.id || `TXN-${Date.now()}`;
+        innerData.transactionId || innerData.id || null;
 
-      pendingPayments.set(transactionId, {
-        status: "pending",
-        payment: {
-          transactionId,
-          amount,
-          collectoId,
-          clientId,
-          points,
-        },
-        createdAt: new Date(),
-      });
 
       return res.json({
         status: collectoData.status || "200",
@@ -197,14 +186,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
     if (!transactionId)
       return res.status(400).send("Missing transactionId in body");
 
-    // Try to find an existing transaction record (for status updates)
-    let dbTransaction: any = null;
-    try {
-      dbTransaction = await transactionRepository.findByTransactionId(transactionId);
-    } catch (err: any) {
-      console.log("Transaction not found in DB, proceeding as regular payment");
-    }
-
+ 
     try {
       // Prepare payload without reference
       const payload: any = {
@@ -240,34 +222,6 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
       const isConfirmed = ["success", "paid", "confirmed"].some((s) =>
         statusFromCollecto.includes(s),
       );
-
-      // If we have a stored transaction, update its status
-      if (dbTransaction) {
-        try {
-          await transactionRepository.updatePaymentStatus(
-            dbTransaction.id,
-            statusFromCollecto
-          );
-
-          return res.json({
-            transactionId,
-            status: isConfirmed ? "confirmed" : "pending",
-            payment,
-            transaction: {
-              id: dbTransaction.id,
-              points: dbTransaction.points,
-              paymentStatus: statusFromCollecto
-            }
-          });
-        } catch (txnErr: any) {
-          console.error("Error updating transaction status:", txnErr.message);
-          return res.status(500).json({
-            transactionId,
-            message: "Error updating transaction",
-            error: txnErr.message
-          });
-        }
-      }
 
       // Regular transactions (no local record)
       return res.json({
