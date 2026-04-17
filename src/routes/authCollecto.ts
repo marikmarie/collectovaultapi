@@ -112,17 +112,10 @@ function collectoHeaders(userToken?: string) {
         });
       }
 
-      // Call Collecto endpoint to set username
-      const collectoPayload = {
-        clientId,
-        username: username.trim(),
-        collectoId: collectoId || undefined,
-      };
-
       try {
         const collectoResponse = await axios.post(
-          `${BASE_URL}/setUsername`,
-          collectoPayload,
+          `${BASE_URL}/clientUsername`,
+          req.body,
           {
             headers: collectoHeaders(userToken),
           }
