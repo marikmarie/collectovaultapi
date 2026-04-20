@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import path from "path";
 
 // Ensure dotenv looks for the .env file relative to the execution context
 dotenv.config();

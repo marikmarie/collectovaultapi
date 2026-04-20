@@ -79,7 +79,7 @@ function collectoHeaders(userToken?: string) {
   // POST /set-username - Set username for a customer via Collecto endpoint
   router.post("/setUsername", async (req: Request, res: Response) => {
     try {
-      const { clientId, username, collectoId } = req.body;
+      const { clientId, username, collectoId, action } = req.body;
       const userToken = req.headers.authorization;
 
       // Validate required fields
@@ -94,6 +94,14 @@ function collectoHeaders(userToken?: string) {
         return res.status(400).json({
           success: false,
           message: "username is required",
+        });
+      }
+
+      // Validate action field (must be 'create' or 'update')
+      if (action && !['create', 'update'].includes(action)) {
+        return res.status(400).json({
+          success: false,
+          message: "action must be either 'create' or 'update'",
         });
       }
 
@@ -129,8 +137,7 @@ function collectoHeaders(userToken?: string) {
       } catch (collectoErr: any) {
         console.error("[Collecto /setUsername] ERROR", collectoErr?.response?.data || collectoErr.message);
         
-        // Check if error is due to username already taken
-        if (collectoErr?.response?.status === 409 || 
+       if (collectoErr?.response?.status === 409 || 
             collectoErr?.response?.data?.message?.toLowerCase().includes('taken')) {
           return res.status(409).json({
             success: false,
