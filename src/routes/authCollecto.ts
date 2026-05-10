@@ -77,88 +77,103 @@ function collectoHeaders(userToken?: string) {
   });
 
   // POST /set-username - Set username for a customer via Collecto endpoint
-  router.post("/setUsername", async (req: Request, res: Response) => {
-    try {
-      const { clientId, username, collectoId, action } = req.body;
-      const userToken = req.headers.authorization;
+  // POST /setUsername - Set username for a customer via Collecto endpoint
+router.post("/setUsername", async (req: Request, res: Response) => {
+  try {
+    const { clientId, username, action } = req.body;
+    const userToken = req.headers.authorization;
 
-      // Validate required fields
-      if (!clientId) {
-        return res.status(400).json({
-          success: false,
-          message: "clientId is required",
-        });
-      }
-
-      if (!username) {
-        return res.status(400).json({
-          success: false,
-          message: "username is required",
-        });
-      }
-
-      // Validate action field (must be 'create' or 'update')
-      if (action && !['create', 'update'].includes(action)) {
-        return res.status(400).json({
-          success: false,
-          message: "action must be either 'create' or 'update'",
-        });
-      }
-
-      // Validate username format
-      if (username.length < 3 || username.length > 100) {
-        return res.status(400).json({
-          success: false,
-          message: "Username must be between 3 and 100 characters",
-        });
-      }
-
-      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-        return res.status(400).json({
-          success: false,
-          message: "Username can only contain letters, numbers, underscores, and hyphens",
-        });
-      }
-
-      try {
-        const collectoResponse = await axios.post(
-          `${BASE_URL}/clientUsername`,
-          req.body,
-          {
-            headers: collectoHeaders(userToken),
-          }
-        );
-
-        return res.status(200).json({
-          success: true,
-          message: "Username set successfully in Collecto system",
-          data: collectoResponse.data?.data || { clientId, username },
-        });
-      } catch (collectoErr: any) {
-        console.error("[Collecto /setUsername] ERROR", collectoErr?.response?.data || collectoErr.message);
-        
-       if (collectoErr?.response?.status === 409 || 
-            collectoErr?.response?.data?.message?.toLowerCase().includes('taken')) {
-          return res.status(409).json({
-            success: false,
-            message: "Username already taken",
-          });
-        }
-
-        return res.status(collectoErr?.response?.status || 400).json({
-          success: false,
-          message: collectoErr?.response?.data?.message || "Failed to set username in Collecto system",
-        });
-      }
-    } catch (err: any) {
-      console.error("[Collecto /set-username] ERROR", err?.message);
+    // 1. Validate required fields
+    if (!clientId || !username) {
       return res.status(400).json({
         success: false,
-        message: err.message || "Failed to set username",
+        message: "Both clientId and username are required",
       });
     }
-  });
 
+    // 2. Validate action field (must be 'create' or 'update')
+    if (action && !['create', 'update'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "Action must be either 'create' or 'update'",
+      });
+    }
+
+    // 3. Validate username format
+    if (username.length < 3 || username.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be between 3 and 100 characters",
+      });
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({
+        success: false,
+        message: "Username can only contain letters, numbers, underscores, and hyphens",
+      });
+    }
+
+    try {
+      // 4. Call external Collecto API
+      const collectoResponse = await axios.post(
+        `${BASE_URL}/clientUsername`,
+        req.body,
+        {
+          headers: collectoHeaders(userToken),
+        }
+      );
+
+      const responseData = collectoResponse.data;
+      console.log("[Collecto /setUsername] Response", responseData);
+
+      /**
+       * 5. Treat the response right:
+       * Based on your logs, the username is found in responseData.data.clientUsername
+       * and the success message is in responseData.data.message
+       */
+      const resultData = responseData.data;
+
+      return res.status(200).json({
+        success: true,
+        message: resultData?.message || "Username set successfully",
+        data: {
+          clientId: clientId,
+          username: resultData?.clientUsername || username,
+          status: responseData.status_message // 'success'
+        },
+      });
+
+    } catch (collectoErr: any) {
+      const errorData = collectoErr?.response?.data;
+      const errorStatus = collectoErr?.response?.status;
+
+      console.error("[Collecto /setUsername] ERROR", errorData || collectoErr.message);
+
+      // Handle Username Already Taken
+      if (errorStatus === 409 || errorData?.message?.toLowerCase().includes('taken')) {
+        return res.status(409).json({
+          success: false,
+          message: "That username is already taken. Please choose another.",
+        });
+      }
+
+      // Handle other API errors
+      return res.status(errorStatus || 400).json({
+        success: false,
+        message: errorData?.message || "Could not set username at this time",
+      });
+    }
+
+  } catch (err: any) {
+    console.error("[Global /setUsername] ERROR", err?.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error occurred while setting username",
+    });
+  }
+});
   // POST /get-by-username - Get customer by username and retrieve their client ID
   router.post("/getByUsername", async (req: Request, res: Response) => {
     try {
