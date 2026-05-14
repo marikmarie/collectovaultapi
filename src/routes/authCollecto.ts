@@ -1,7 +1,6 @@
 import e, { Router, Request, Response, NextFunction } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import { CustomerRepository } from "../repositories/customer.repository";
 dotenv.config();
 
 const BASE_URL = process.env.COLLECTO_BASE_URL;

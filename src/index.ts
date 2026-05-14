@@ -205,8 +205,6 @@ if (isCLIMode) {
         break;
 
      
-
-
       default:
         mockRes.status(404).json({ error: "Unknown path", path });
     }
