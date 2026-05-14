@@ -1,10 +1,7 @@
 import e, { Router, Request, Response, NextFunction } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import { CustomerService } from "../services/customer.service";
 import { CustomerRepository } from "../repositories/customer.repository";
-import { TransactionRepository } from "../repositories/transaction.repository";
-
 dotenv.config();
 
 const BASE_URL = process.env.COLLECTO_BASE_URL;
@@ -27,10 +24,7 @@ function collectoHeaders(userToken?: string) {
   // Initialize repositories and services for username functionality
   const customerRepository = new CustomerRepository();
   const tranRepo = new TransactionRepository();
-  const customerService = new CustomerService(
-    customerRepository,
-    tranRepo
-  );
+ 
 
   // POST /auth
   router.post("/auth", async (req: Request, res: Response) => {
