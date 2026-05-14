@@ -1,9 +1,6 @@
 import { Router, Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import { CustomerService } from "../services/customer.service";
-import { CustomerRepository } from "../repositories/customer.repository";
-import { TransactionRepository } from "../repositories/transaction.repository";
 
 dotenv.config();
 
@@ -12,15 +9,6 @@ const router = Router();
 const BASE_URL = process.env.COLLECTO_BASE_URL;
 const API_KEY = process.env.COLLECTO_API_KEY;
 
-// Initialize repositories
-const customerRepository = new CustomerRepository();
-const transactionRepository = new TransactionRepository();
-
-// Initialize customer service
-const customerService = new CustomerService(
-  customerRepository,
-  transactionRepository,
-);
 
 
 const pendingPayments: Map<

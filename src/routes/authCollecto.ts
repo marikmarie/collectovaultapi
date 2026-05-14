@@ -21,10 +21,6 @@ function collectoHeaders(userToken?: string) {
 // export function collectoRouter(): Router {
   const router = Router();
 
-  // Initialize repositories and services for username functionality
-  const customerRepository = new CustomerRepository();
-  const tranRepo = new TransactionRepository();
- 
 
   // POST /auth
   router.post("/auth", async (req: Request, res: Response) => {
