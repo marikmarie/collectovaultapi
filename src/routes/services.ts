@@ -164,8 +164,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
         },
       );
 
-      console.log("Collecto payment status response:", response.data);
-      const data = response.data;
+     const data = response.data;
       let payment: any = data.data;
 
       // Extract status from payment
@@ -236,9 +235,7 @@ router.post("/verifyPhoneNumber", async (req: Request, res: Response) => {
         { vaultOTPToken, collectoId, clientId, phone: phoneNumber },
         { headers: collectoHeaders(userToken) },
       );
-
-      console.log("Phone verification response:", response.data);
-      return res.json(response.data);
+   return res.json(response.data);
     } catch (err: any) {
       console.warn(
         "Collecto phone verification failed, returning local dummy:",
@@ -343,8 +340,7 @@ router.post("/loyaltySettings", async (req: Request, res: Response) => {
         { collectoId, clientId },
         { headers: collectoHeaders(userToken) },
       );
-      console.log("Loyalty settings response:", response.data);
-      return res.json(response.data);
+        return res.json(response.data);
     } catch (err: any) {
       console.warn(
         "Collecto loyalty settings fetch failed, returning local dummy:",
