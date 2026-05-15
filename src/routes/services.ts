@@ -155,14 +155,7 @@ router.post("/requestToPayStatus", async (req: Request, res: Response) => {
 
  
     try {
-      // Prepare payload without reference
-      const payload: any = {
-        vaultOTPToken,
-        collectoId,
-        clientId,
-        transactionId,
-      };
-
+ 
       const response = await axios.post(
         `${BASE_URL}/requestToPayStatus`,
         req.body,
