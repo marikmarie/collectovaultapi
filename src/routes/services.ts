@@ -51,7 +51,6 @@ router.post("/services", async (req: Request, res: Response) => {
         headers: collectoHeaders(token),
       },
     );
-    // console.log("Services Response:", JSON.stringify(response.data, null, 2));
     return res.json(response.data);
   } catch (err: any) {
     console.error("Fetch Error:", err?.response?.data || err.message);
@@ -66,22 +65,11 @@ router.post("/invoiceDetails", async (req: Request, res: Response) => {
   try {
     // const token = req.headers.authorization;
     const token = req.headers.authorization as string | undefined;
-    const { vaultOTPToken, clientId, collectoId, invoiceId } = req.body;
-
-    const params: any = {
-      vaultOTPToken,
-      clientId,
-      collectoId,
-      invoiceId,
-    };
-    console.log(params);
-
-    const response = await axios.post(`${BASE_URL}/invoiceDetails`, params, {
+   
+    const response = await axios.post(`${BASE_URL}/invoiceDetails`, req.body, {
       headers: collectoHeaders(token),
     });
-    console.log(BASE_URL);
-    console.log(response.data);
-
+   
     return res.json(response.data);
   } catch (error: any) {
     console.error(
@@ -100,26 +88,17 @@ router.post("/requestToPay", async (req: Request, res: Response) => {
     const userToken = req.headers.authorization;
     const payload = { ...req.body }; 
 
-    const {
-      paymentOption,
-      collectoId,
-      clientId,
-      phone,
-      reference,
-      amount,
-      staffId,
-      points,
-    } = payload;
 
-    if (!paymentOption)
+
+    if (!payload.paymentOption)
       return res.status(400).send("Missing payment method");
 
-    if (!collectoId || !clientId)
+    if (!payload.collectoId || !payload.clientId)
       return res.status(400).send("Missing collectoId or clientId");
 
     // Normalize phone to 256 format (only if provided)
-    if (phone) {
-      payload.phone = phone.replace(/^0/, "256");
+    if (payload.phone) {
+      payload.phone = payload.phone.replace(/^0/, "256");
     }
 
     try {
