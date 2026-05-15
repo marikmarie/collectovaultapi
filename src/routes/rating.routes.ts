@@ -11,14 +11,14 @@ export const RatingRoutes = (): Router => {
   // Create a new rating
   router.post("/", async (req: Request, res: Response) => {
     try {
-      const { customerId, transactionId, orderRating, paymentRating, serviceRating, overallRating, comment } = req.body;
+      const { clientId, transactionId, orderRating, paymentRating, serviceRating, overallRating, comment } = req.body;
 
-      if (!customerId || !transactionId) {
-        return res.status(400).json({ error: "customerId and transactionId are required" });
+      if (!clientId || !transactionId) {
+        return res.status(400).json({ error: "clientId and transactionId are required" });
       }
 
       const rating = await ratingService.createRating({
-        customerId,
+        clientId,
         transactionId,
         orderRating,
         paymentRating,
@@ -57,12 +57,12 @@ export const RatingRoutes = (): Router => {
   });
 
   // Get all ratings for a customer
-  router.get("/customer/:customerId", async (req: Request, res: Response) => {
+  router.get("/customer/:clientId", async (req: Request, res: Response) => {
     try {
       const limit = req.query.limit ? Number(req.query.limit) : 10;
       const offset = req.query.offset ? Number(req.query.offset) : 0;
 
-      const ratings = await ratingService.getCustomerRatings(Number(req.params.customerId), limit, offset);
+      const ratings = await ratingService.getCustomerRatings(Number(req.params.clientId), limit, offset);
       res.json(ratings);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -70,9 +70,9 @@ export const RatingRoutes = (): Router => {
   });
 
   // Get average ratings for a customer
-  router.get("/customer/:customerId/average", async (req: Request, res: Response) => {
+  router.get("/customer/:clientId/average", async (req: Request, res: Response) => {
     try {
-      const averages = await ratingService.getCustomerAverageRatings(Number(req.params.customerId));
+      const averages = await ratingService.getCustomerAverageRatings(Number(req.params.clientId));
       res.json(averages);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

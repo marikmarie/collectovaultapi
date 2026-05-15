@@ -1,7 +1,7 @@
 export class Rating {
   constructor(
     public readonly id: number,
-    public customerId: number,
+    public clientId: number,
     public transactionId: number,
     public orderRating: number,
     public paymentRating: number,

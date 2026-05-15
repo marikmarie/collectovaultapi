@@ -13,13 +13,13 @@ export const ContactRoutes = (): Router => {
   // Set user WhatsApp contact
   router.post("/whatsapp/user", async (req: Request, res: Response) => {
     try {
-      const { customerId, whatsappNumber } = req.body;
+      const { clientId, whatsappNumber } = req.body;
 
-      if (!customerId || !whatsappNumber) {
-        return res.status(400).json({ error: "customerId and whatsappNumber are required" });
+      if (!clientId || !whatsappNumber) {
+        return res.status(400).json({ error: "clientId and whatsappNumber are required" });
       }
 
-      const contact = await contactService.setUserWhatsAppContact(customerId, whatsappNumber);
+      const contact = await contactService.setUserWhatsAppContact(clientId, whatsappNumber);
       res.status(201).json(contact);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -27,9 +27,9 @@ export const ContactRoutes = (): Router => {
   });
 
   // Get user WhatsApp contact
-  router.get("/whatsapp/user/:customerId", async (req: Request, res: Response) => {
+  router.get("/whatsapp/user/:clientId", async (req: Request, res: Response) => {
     try {
-      const contact = await contactService.getUserWhatsAppContact(Number(req.params.customerId));
+      const contact = await contactService.getUserWhatsAppContact(Number(req.params.clientId));
 
       if (!contact) {
         return res.status(404).json({ error: "No WhatsApp contact found" });
@@ -42,9 +42,9 @@ export const ContactRoutes = (): Router => {
   });
 
   // Get WhatsApp URL for user
-  router.get("/whatsapp/user/:customerId/url", async (req: Request, res: Response) => {
+  router.get("/whatsapp/user/:clientId/url", async (req: Request, res: Response) => {
     try {
-      const url = await contactService.getWhatsAppContactUrl(Number(req.params.customerId));
+      const url = await contactService.getWhatsAppContactUrl(Number(req.params.clientId));
 
       if (!url) {
         return res.status(404).json({ error: "No WhatsApp contact found" });
@@ -57,9 +57,9 @@ export const ContactRoutes = (): Router => {
   });
 
   // Delete user WhatsApp contact
-  router.delete("/whatsapp/user/:customerId", async (req: Request, res: Response) => {
+  router.delete("/whatsapp/user/:clientId", async (req: Request, res: Response) => {
     try {
-      await contactService.deleteUserWhatsAppContact(Number(req.params.customerId));
+      await contactService.deleteUserWhatsAppContact(Number(req.params.clientId));
       res.json({ message: "WhatsApp contact deleted successfully" });
     } catch (error: any) {
       res.status(400).json({ error: error.message });

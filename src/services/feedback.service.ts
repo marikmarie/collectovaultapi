@@ -2,7 +2,7 @@ import { FeedbackRepository } from "../repositories/feedback.repository";
 import { Feedback } from "../models/Feedback.model";
 
 export interface CreateFeedbackDTO {
-  customerId: number;
+  clientId: number;
   feedbackType: 'order' | 'service' | 'app' | 'general';
   title: string;
   message: string;
@@ -31,7 +31,7 @@ export class FeedbackService {
       throw new Error("Title must be less than 255 characters");
     }
 
-    return await this.feedbackRepository.create(dto.customerId, {
+    return await this.feedbackRepository.create(dto.clientId, {
       feedbackType: dto.feedbackType,
       title: dto.title.trim(),
       message: dto.message.trim(),
@@ -47,8 +47,8 @@ export class FeedbackService {
     return feedback;
   }
 
-  async getCustomerFeedback(customerId: number, limit = 20, offset = 0): Promise<Feedback[]> {
-    return await this.feedbackRepository.findByCustomerId(customerId, limit, offset);
+  async getCustomerFeedback(clientId: number, limit = 20, offset = 0): Promise<Feedback[]> {
+    return await this.feedbackRepository.findByCustomerId(clientId, limit, offset);
   }
 
   async getFeedbackByStatus(status: string, limit = 20, offset = 0): Promise<Feedback[]> {

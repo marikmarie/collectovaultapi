@@ -2,7 +2,7 @@ import { ChatMessageRepository } from "../repositories/chatMessage.repository";
 import { ChatMessage } from "../models/ChatMessage.model";
 
 export interface CreateChatMessageDTO {
-  customerId: number;
+  clientId: number;
   senderType: 'customer' | 'support';
   message: string;
   attachments?: string[];
@@ -20,7 +20,7 @@ export class ChatService {
     }
 
     return await this.chatRepository.create(
-      dto.customerId,
+      dto.clientId,
       dto.senderType,
       {
         message: dto.message.trim(),
@@ -37,8 +37,8 @@ export class ChatService {
     return message;
   }
 
-  async getConversation(customerId: number, limit = 50, offset = 0): Promise<ChatMessage[]> {
-    return await this.chatRepository.findByCustomerId(customerId, limit, offset);
+  async getConversation(clientId: number, limit = 50, offset = 0): Promise<ChatMessage[]> {
+    return await this.chatRepository.findByCustomerId(clientId, limit, offset);
   }
 
   async markMessageAsRead(id: number): Promise<void> {
@@ -49,12 +49,12 @@ export class ChatService {
     await this.chatRepository.markAsRead(id);
   }
 
-  async markAllAsRead(customerId: number): Promise<void> {
-    await this.chatRepository.markAllAsRead(customerId);
+  async markAllAsRead(clientId: number): Promise<void> {
+    await this.chatRepository.markAllAsRead(clientId);
   }
 
-  async getUnreadCount(customerId: number): Promise<number> {
-    return await this.chatRepository.countUnread(customerId);
+  async getUnreadCount(clientId: number): Promise<number> {
+    return await this.chatRepository.countUnread(clientId);
   }
 
   async deleteMessage(id: number): Promise<void> {
@@ -65,9 +65,9 @@ export class ChatService {
     await this.chatRepository.delete(id);
   }
 
-  async sendSupportReply(customerId: number, message: string, attachments?: string[]): Promise<ChatMessage> {
+  async sendSupportReply(clientId: number, message: string, attachments?: string[]): Promise<ChatMessage> {
     return await this.sendMessage({
-      customerId,
+      clientId,
       senderType: 'support',
       message,
       attachments,

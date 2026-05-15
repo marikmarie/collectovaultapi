@@ -4,7 +4,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface RatingRow extends RowDataPacket {
   id: number;
-  customerId: number;
+  clientId: number;
   transactionId: number;
   orderRating: number;
   paymentRating: number;
@@ -19,7 +19,7 @@ export class RatingRepository {
   private mapRowToRating(row: RatingRow): Rating {
     return new Rating(
       row.id,
-      row.customerId,
+      row.clientId,
       row.transactionId,
       row.orderRating,
       row.paymentRating,
@@ -31,7 +31,7 @@ export class RatingRepository {
     );
   }
 
-  async create(customerId: number, transactionId: number, data: {
+  async create(clientId: number, transactionId: number, data: {
     orderRating: number;
     paymentRating: number;
     serviceRating: number;
@@ -39,13 +39,13 @@ export class RatingRepository {
     comment?: string;
   }): Promise<Rating> {
     const query = `
-      INSERT INTO ratings (customerId, transactionId, orderRating, paymentRating, serviceRating, overallRating, comment)
+      INSERT INTO ratings (clientId, transactionId, orderRating, paymentRating, serviceRating, overallRating, comment)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     try {
       const [result] = await pool.query<ResultSetHeader>(query, [
-        customerId,
+        clientId,
         transactionId,
         data.orderRating,
         data.paymentRating,
@@ -75,14 +75,14 @@ export class RatingRepository {
     return rows.length > 0 ? this.mapRowToRating(rows[0]) : null;
   }
 
-  async findByCustomerId(customerId: number, limit = 10, offset = 0): Promise<Rating[]> {
+  async findByCustomerId(clientId: number, limit = 10, offset = 0): Promise<Rating[]> {
     const query = `
       SELECT * FROM ratings 
-      WHERE customerId = ? 
+      WHERE clientId = ? 
       ORDER BY createdAt DESC 
       LIMIT ? OFFSET ?
     `;
-    const [rows] = await pool.query<RatingRow[]>(query, [customerId, limit, offset]);
+    const [rows] = await pool.query<RatingRow[]>(query, [clientId, limit, offset]);
     return rows.map((row) => this.mapRowToRating(row));
   }
 
@@ -119,7 +119,7 @@ export class RatingRepository {
     }
   }
 
-  async getAverageRatings(customerId: number): Promise<{
+  async getAverageRatings(clientId: number): Promise<{
     avgOrderRating: number;
     avgPaymentRating: number;
     avgServiceRating: number;
@@ -134,10 +134,10 @@ export class RatingRepository {
         AVG(overallRating) as avgOverallRating,
         COUNT(*) as totalRatings
       FROM ratings 
-      WHERE customerId = ?
+      WHERE clientId = ?
     `;
 
-    const [rows] = await pool.query<RowDataPacket[]>(query, [customerId]);
+    const [rows] = await pool.query<RowDataPacket[]>(query, [clientId]);
     return rows[0] as any;
   }
 }

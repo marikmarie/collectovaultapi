@@ -4,7 +4,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface WhatsAppContactRow extends RowDataPacket {
   id: number;
-  customerId: number;
+  clientId: number;
   whatsappNumber: string;
   isPreferred: boolean;
   verifiedAt: Date | null;
@@ -25,7 +25,7 @@ export class ContactRepository {
   private mapRowToWhatsAppContact(row: WhatsAppContactRow): WhatsAppContact {
     return new WhatsAppContact(
       row.id,
-      row.customerId,
+      row.clientId,
       row.whatsappNumber,
       row.isPreferred,
       row.verifiedAt,
@@ -46,9 +46,9 @@ export class ContactRepository {
   }
 
   // WhatsApp Contact Methods
-  async createWhatsAppContact(customerId: number, whatsappNumber: string): Promise<WhatsAppContact> {
+  async createWhatsAppContact(clientId: number, whatsappNumber: string): Promise<WhatsAppContact> {
     const query = `
-      INSERT INTO whatsapp_contacts (customerId, whatsappNumber, isPreferred)
+      INSERT INTO whatsapp_contacts (clientId, whatsappNumber, isPreferred)
       VALUES (?, ?, TRUE)
       ON DUPLICATE KEY UPDATE 
         whatsappNumber = VALUES(whatsappNumber),
@@ -56,8 +56,8 @@ export class ContactRepository {
     `;
 
     try {
-      const [result] = await pool.query<ResultSetHeader>(query, [customerId, whatsappNumber]);
-      const contact = await this.getWhatsAppContact(customerId);
+      const [result] = await pool.query<ResultSetHeader>(query, [clientId, whatsappNumber]);
+      const contact = await this.getWhatsAppContact(clientId);
       if (!contact) throw new Error("Failed to retrieve created WhatsApp contact");
       return contact;
     } catch (error) {
@@ -66,9 +66,9 @@ export class ContactRepository {
     }
   }
 
-  async getWhatsAppContact(customerId: number): Promise<WhatsAppContact | null> {
-    const query = "SELECT * FROM whatsapp_contacts WHERE customerId = ? AND isPreferred = TRUE";
-    const [rows] = await pool.query<WhatsAppContactRow[]>(query, [customerId]);
+  async getWhatsAppContact(clientId: number): Promise<WhatsAppContact | null> {
+    const query = "SELECT * FROM whatsapp_contacts WHERE clientId = ? AND isPreferred = TRUE";
+    const [rows] = await pool.query<WhatsAppContactRow[]>(query, [clientId]);
     return rows.length > 0 ? this.mapRowToWhatsAppContact(rows[0]) : null;
   }
 
@@ -82,9 +82,9 @@ export class ContactRepository {
     }
   }
 
-  async deleteWhatsAppContact(customerId: number): Promise<void> {
+  async deleteWhatsAppContact(clientId: number): Promise<void> {
     try {
-      await pool.query("DELETE FROM whatsapp_contacts WHERE customerId = ?", [customerId]);
+      await pool.query("DELETE FROM whatsapp_contacts WHERE clientId = ?", [clientId]);
     } catch (error) {
       console.error("Database error in deleteWhatsAppContact:", error);
       throw error;

@@ -4,7 +4,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface FeedbackRow extends RowDataPacket {
   id: number;
-  customerId: number;
+  clientId: number;
   feedbackType: string;
   title: string;
   message: string;
@@ -19,7 +19,7 @@ export class FeedbackRepository {
   private mapRowToFeedback(row: FeedbackRow): Feedback {
     return new Feedback(
       row.id,
-      row.customerId,
+      row.clientId,
       row.feedbackType as any,
       row.title,
       row.message,
@@ -31,20 +31,20 @@ export class FeedbackRepository {
     );
   }
 
-  async create(customerId: number, data: {
+  async create(clientId: number, data: {
     feedbackType: 'order' | 'service' | 'app' | 'general';
     title: string;
     message: string;
     attachments?: string[];
   }): Promise<Feedback> {
     const query = `
-      INSERT INTO feedback (customerId, feedbackType, title, message, attachments, status, priority)
+      INSERT INTO feedback (clientId, feedbackType, title, message, attachments, status, priority)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     try {
       const [result] = await pool.query<ResultSetHeader>(query, [
-        customerId,
+        clientId,
         data.feedbackType,
         data.title,
         data.message,
@@ -68,14 +68,14 @@ export class FeedbackRepository {
     return rows.length > 0 ? this.mapRowToFeedback(rows[0]) : null;
   }
 
-  async findByCustomerId(customerId: number, limit = 20, offset = 0): Promise<Feedback[]> {
+  async findByCustomerId(clientId: number, limit = 20, offset = 0): Promise<Feedback[]> {
     const query = `
       SELECT * FROM feedback 
-      WHERE customerId = ? 
+      WHERE clientId = ? 
       ORDER BY createdAt DESC 
       LIMIT ? OFFSET ?
     `;
-    const [rows] = await pool.query<FeedbackRow[]>(query, [customerId, limit, offset]);
+    const [rows] = await pool.query<FeedbackRow[]>(query, [clientId, limit, offset]);
     return rows.map((row) => this.mapRowToFeedback(row));
   }
 

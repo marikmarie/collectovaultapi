@@ -11,14 +11,14 @@ export const ChatRoutes = (): Router => {
   // Send a message
   router.post("/", async (req: Request, res: Response) => {
     try {
-      const { customerId, senderType, message, attachments } = req.body;
+      const { clientId, senderType, message, attachments } = req.body;
 
-      if (!customerId || !message) {
-        return res.status(400).json({ error: "customerId and message are required" });
+      if (!clientId || !message) {
+        return res.status(400).json({ error: "clientId and message are required" });
       }
 
       const chatMessage = await chatService.sendMessage({
-        customerId,
+        clientId,
         senderType: senderType || 'customer',
         message,
         attachments,
@@ -41,13 +41,13 @@ export const ChatRoutes = (): Router => {
   });
 
   // Get conversation for a customer
-  router.get("/customer/:customerId", async (req: Request, res: Response) => {
+  router.get("/customer/:clientId", async (req: Request, res: Response) => {
     try {
       const limit = req.query.limit ? Number(req.query.limit) : 50;
       const offset = req.query.offset ? Number(req.query.offset) : 0;
 
       const messages = await chatService.getConversation(
-        Number(req.params.customerId),
+        Number(req.params.clientId),
         limit,
         offset
       );
@@ -59,9 +59,9 @@ export const ChatRoutes = (): Router => {
   });
 
   // Get unread count for a customer
-  router.get("/customer/:customerId/unread", async (req: Request, res: Response) => {
+  router.get("/customer/:clientId/unread", async (req: Request, res: Response) => {
     try {
-      const count = await chatService.getUnreadCount(Number(req.params.customerId));
+      const count = await chatService.getUnreadCount(Number(req.params.clientId));
       res.json({ unreadCount: count });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -79,9 +79,9 @@ export const ChatRoutes = (): Router => {
   });
 
   // Mark all messages as read for a customer
-  router.patch("/customer/:customerId/read-all", async (req: Request, res: Response) => {
+  router.patch("/customer/:clientId/read-all", async (req: Request, res: Response) => {
     try {
-      await chatService.markAllAsRead(Number(req.params.customerId));
+      await chatService.markAllAsRead(Number(req.params.clientId));
       res.json({ message: "All messages marked as read" });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -89,7 +89,7 @@ export const ChatRoutes = (): Router => {
   });
 
   // Send support reply
-  router.post("/:customerId/support-reply", async (req: Request, res: Response) => {
+  router.post("/:clientId/support-reply", async (req: Request, res: Response) => {
     try {
       const { message, attachments } = req.body;
 
@@ -98,7 +98,7 @@ export const ChatRoutes = (): Router => {
       }
 
       const reply = await chatService.sendSupportReply(
-        Number(req.params.customerId),
+        Number(req.params.clientId),
         message,
         attachments
       );

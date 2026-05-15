@@ -1,7 +1,7 @@
 export class WhatsAppContact {
   constructor(
     public readonly id: number,
-    public customerId: number,
+    public clientId: number,
     public whatsappNumber: string,
     public isPreferred: boolean,
     public verifiedAt: Date | null,

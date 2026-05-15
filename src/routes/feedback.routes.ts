@@ -11,14 +11,14 @@ export const FeedbackRoutes = (): Router => {
   // Create new feedback
   router.post("/", async (req: Request, res: Response) => {
     try {
-      const { customerId, feedbackType, title, message, attachments } = req.body;
+      const { clientId, feedbackType, title, message, attachments } = req.body;
 
-      if (!customerId || !feedbackType || !title || !message) {
-        return res.status(400).json({ error: "customerId, feedbackType, title, and message are required" });
+      if (!clientId || !feedbackType || !title || !message) {
+        return res.status(400).json({ error: "clientId, feedbackType, title, and message are required" });
       }
 
       const feedback = await feedbackService.createFeedback({
-        customerId,
+        clientId,
         feedbackType,
         title,
         message,
@@ -42,13 +42,13 @@ export const FeedbackRoutes = (): Router => {
   });
 
   // Get all feedback for a customer
-  router.get("/customer/:customerId", async (req: Request, res: Response) => {
+  router.get("/customer/:clientId", async (req: Request, res: Response) => {
     try {
       const limit = req.query.limit ? Number(req.query.limit) : 20;
       const offset = req.query.offset ? Number(req.query.offset) : 0;
 
       const feedback = await feedbackService.getCustomerFeedback(
-        Number(req.params.customerId),
+        Number(req.params.clientId),
         limit,
         offset
       );

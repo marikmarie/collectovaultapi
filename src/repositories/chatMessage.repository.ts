@@ -4,7 +4,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 interface ChatMessageRow extends RowDataPacket {
   id: number;
-  customerId: number;
+  clientId: number;
   senderType: string;
   message: string;
   attachments: string | null;
@@ -17,7 +17,7 @@ export class ChatMessageRepository {
   private mapRowToChatMessage(row: ChatMessageRow): ChatMessage {
     return new ChatMessage(
       row.id,
-      row.customerId,
+      row.clientId,
       row.senderType as any,
       row.message,
       row.attachments ? JSON.parse(row.attachments) : null,
@@ -27,18 +27,18 @@ export class ChatMessageRepository {
     );
   }
 
-  async create(customerId: number, senderType: 'customer' | 'support', data: {
+  async create(clientId: number, senderType: 'customer' | 'support', data: {
     message: string;
     attachments?: string[];
   }): Promise<ChatMessage> {
     const query = `
-      INSERT INTO chat_messages (customerId, senderType, message, attachments)
+      INSERT INTO chat_messages (clientId, senderType, message, attachments)
       VALUES (?, ?, ?, ?)
     `;
 
     try {
       const [result] = await pool.query<ResultSetHeader>(query, [
-        customerId,
+        clientId,
         senderType,
         data.message,
         data.attachments ? JSON.stringify(data.attachments) : null,
@@ -59,14 +59,14 @@ export class ChatMessageRepository {
     return rows.length > 0 ? this.mapRowToChatMessage(rows[0]) : null;
   }
 
-  async findByCustomerId(customerId: number, limit = 50, offset = 0): Promise<ChatMessage[]> {
+  async findByCustomerId(clientId: number, limit = 50, offset = 0): Promise<ChatMessage[]> {
     const query = `
       SELECT * FROM chat_messages 
-      WHERE customerId = ? 
+      WHERE clientId = ? 
       ORDER BY createdAt DESC 
       LIMIT ? OFFSET ?
     `;
-    const [rows] = await pool.query<ChatMessageRow[]>(query, [customerId, limit, offset]);
+    const [rows] = await pool.query<ChatMessageRow[]>(query, [clientId, limit, offset]);
     return rows.map((row) => this.mapRowToChatMessage(row)).reverse();
   }
 
@@ -80,19 +80,19 @@ export class ChatMessageRepository {
     }
   }
 
-  async markAllAsRead(customerId: number): Promise<void> {
-    const query = "UPDATE chat_messages SET isRead = TRUE, readAt = CURRENT_TIMESTAMP WHERE customerId = ? AND isRead = FALSE";
+  async markAllAsRead(clientId: number): Promise<void> {
+    const query = "UPDATE chat_messages SET isRead = TRUE, readAt = CURRENT_TIMESTAMP WHERE clientId = ? AND isRead = FALSE";
     try {
-      await pool.query(query, [customerId]);
+      await pool.query(query, [clientId]);
     } catch (error) {
       console.error("Database error in markAllAsRead:", error);
       throw error;
     }
   }
 
-  async countUnread(customerId: number): Promise<number> {
-    const query = "SELECT COUNT(*) as count FROM chat_messages WHERE customerId = ? AND isRead = FALSE";
-    const [rows] = await pool.query<RowDataPacket[]>(query, [customerId]);
+  async countUnread(clientId: number): Promise<number> {
+    const query = "SELECT COUNT(*) as count FROM chat_messages WHERE clientId = ? AND isRead = FALSE";
+    const [rows] = await pool.query<RowDataPacket[]>(query, [clientId]);
     return (rows[0] as any).count;
   }
 

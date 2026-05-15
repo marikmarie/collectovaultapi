@@ -1,7 +1,7 @@
 export class ChatMessage {
   constructor(
     public readonly id: number,
-    public customerId: number,
+    public clientId: number,
     public senderType: 'customer' | 'support',
     public message: string,
     public attachments: string[] | null,

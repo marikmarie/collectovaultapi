@@ -2,7 +2,7 @@ import { RatingRepository } from "../repositories/rating.repository";
 import { Rating } from "../models/Rating.model";
 
 export interface CreateRatingDTO {
-  customerId: number;
+  clientId: number;
   transactionId: number;
   orderRating: number;
   paymentRating: number;
@@ -39,7 +39,7 @@ export class RatingService {
     }
 
     return await this.ratingRepository.create(
-      dto.customerId,
+      dto.clientId,
       dto.transactionId,
       {
         orderRating: dto.orderRating,
@@ -63,8 +63,8 @@ export class RatingService {
     return await this.ratingRepository.findByTransactionId(transactionId);
   }
 
-  async getCustomerRatings(customerId: number, limit = 10, offset = 0): Promise<Rating[]> {
-    return await this.ratingRepository.findByCustomerId(customerId, limit, offset);
+  async getCustomerRatings(clientId: number, limit = 10, offset = 0): Promise<Rating[]> {
+    return await this.ratingRepository.findByCustomerId(clientId, limit, offset);
   }
 
   async updateRating(id: number, dto: UpdateRatingDTO): Promise<void> {
@@ -95,7 +95,7 @@ export class RatingService {
     await this.ratingRepository.delete(id);
   }
 
-  async getCustomerAverageRatings(customerId: number) {
-    return await this.ratingRepository.getAverageRatings(customerId);
+  async getCustomerAverageRatings(clientId: number) {
+    return await this.ratingRepository.getAverageRatings(clientId);
   }
 }

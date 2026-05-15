@@ -1,7 +1,7 @@
 export class Feedback {
   constructor(
     public readonly id: number,
-    public customerId: number,
+    public clientId: number,
     public feedbackType: 'order' | 'service' | 'app' | 'general',
     public title: string,
     public message: string,
